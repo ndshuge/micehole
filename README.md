@@ -2,11 +2,11 @@
 
 # MiceHole
 
-### 把 ChatGPT 变成你的免费 Codex 式编程助手
+### 免费 Codex 式体验：用 ChatGPT 额度远程施工你的电脑
 
-**Say it in ChatGPT. Build it on your PC.**
+**Your ChatGPT quota. Your own PC. Real coding from anywhere.**
 
-让 AI 不只给出代码，还能在电脑上修改文件、运行项目、检查错误、继续施工。
+**不用为 MiceHole 另购编程模型 API。** 在 ChatGPT 发出任务，让 MiceHole 在自己的 Windows 电脑里改代码、运行程序、测试并修复。现有作者部署已能通过手机 ChatGPT 远程下达施工任务。
 
 [![Windows](https://img.shields.io/badge/Windows-10%20%2F%2011-0078D4?logo=windows&logoColor=white)](#-下载与安装)
 [![MCP](https://img.shields.io/badge/Protocol-MCP-6C57DD)](#-工作原理)
@@ -14,7 +14,7 @@
 [![No MiceHole API](https://img.shields.io/badge/MiceHole%20API%20Key-Not%20Required-18A999)](#-免费是什么意思)
 [![Local Tests](https://img.shields.io/badge/Local%20Smoke%20Tests-Passing-238636)](#-项目进度)
 
-**[中文](docs/README.zh-CN.md) · [English](docs/README.en.md) · [安装](docs/INSTALL.md) · [安全](docs/SECURITY.md)**
+**[开始使用 ChatGPT 插件](docs/CHATGPT-QUICKSTART.md) · [Windows 安装](docs/INSTALL.md) · [English](docs/README.en.md) · [安全须知](docs/SECURITY.md)**
 
 </div>
 
@@ -22,12 +22,12 @@
 
 ## ✨ 一句话介绍
 
-**MiceHole = ChatGPT 的对话体验 + 真实电脑的开发执行能力。**
+**把你已有的 ChatGPT 使用额度变成远程编程工作流：手机提需求，本机做施工。**
 
-让兼容 MCP 的 AI 助手查看工程、修改代码、运行构建、等待长进程结束并读取测试结果，而不是在聊天和终端之间反复复制粘贴。
+你的 ChatGPT 负责理解需求和生成方案，MiceHole 负责连接真实 Windows 工程：读写文件、启动项目、等待进程、检查测试结果。**不需要再为 MiceHole 单独配置一个付费编程模型 API。**
 
 > [!IMPORTANT]
-> **当前仅提供已经实测的本地 MCP 执行引擎 Preview，并非所有 ChatGPT 账号都能直接使用的远程一键版。**
+> **作者现有的 MiceHole 远程部署已可从 ChatGPT 操作本机；GitHub Universal Preview 安装包当前只包含本地 MCP 执行层，还没有给普通用户交付完整的远程接入和账号授权方案。**
 > 「免费 Codex」是产品愿景和体验类比：不需要购买 MiceHole 自己的模型 API。AI 客户端、套餐额度及自定义 MCP 写入权限仍有相应限制。MiceHole 不是 OpenAI Codex 官方产品。
 
 ## 🚀 你可以让 AI 做什么？
@@ -44,7 +44,7 @@
 
 ## 🔄 工作原理
 
-实线代表**本机已测试链路**，虚线是**仍需完成的远程 ChatGPT 接入**：
+实线代表**Universal Preview 已验证的通用执行能力**，虚线代表**作者现有部署可演示、但 Universal 安装包尚未交付的远程手机接入**：
 
 ~~~mermaid
 flowchart TB
@@ -57,7 +57,7 @@ flowchart TB
     E --> G
     F --> G
     G --> A
-    H["手机 / 网页 ChatGPT（目标）"] -. "受支持的账号 + 安全远程连接" .-> B
+    H["手机 / 网页 ChatGPT（现有私有部署）"] -. "Universal 尚需远程接入与账号兼容" .-> B
     classDef core fill:#eef2ff,stroke:#7c8ef1,color:#24315a
     classDef local fill:#ecfdf5,stroke:#45ad81,color:#184e3c
     classDef future fill:#fff7ed,stroke:#e6a35f,color:#824714
@@ -65,6 +65,14 @@ flowchart TB
     class C,D,E,F,G local
     class H future
 ~~~
+
+## 📱 ChatGPT 里怎么用？
+
+在已完成授权、支持 MiceHole 工具调用的 ChatGPT 会话里，选择 MiceHole 插件（可用时通过 **@** 或输入框的 **+** 菜单），发出类似下面的指令：
+
+> @MiceHole 在我已授权的工程目录里检查项目，修复网页在手机上布局错乱的问题。请直接修改本机代码、运行验证、检查错误，最后列出修改文件和真实测试结果。不要只贴代码。
+
+**新用户先看 [ChatGPT 插件使用指南](docs/CHATGPT-QUICKSTART.md)。** 具体账号的插件安装、远程连接和写入权限，以 ChatGPT 实际支持为准。当前 Universal 下载包不是即装即用的手机远程插件。
 
 ## 📦 下载与安装
 
@@ -108,7 +116,7 @@ flowchart TB
 
 ## 📚 更多文档
 
-[中文介绍](docs/README.zh-CN.md) · [English](docs/README.en.md) · [安装](docs/INSTALL.md) · [连接](docs/CONNECT.md) · [安全](docs/SECURITY.md) · [验收](docs/RELEASE.md)
+[ChatGPT 端使用指南](docs/CHATGPT-QUICKSTART.md) · [插件介绍文案](docs/PLUGIN-LISTING.md) · [中文介绍](docs/README.zh-CN.md) · [English](docs/README.en.md) · [安装](docs/INSTALL.md) · [连接](docs/CONNECT.md) · [安全](docs/SECURITY.md) · [验收](docs/RELEASE.md)
 
 ---
 

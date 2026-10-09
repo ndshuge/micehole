@@ -1,8 +1,8 @@
-# MiceHole Universal — English overview
+# MiceHole — Free Codex-like coding with your ChatGPT allowance
 
-## Free Codex-like coding experience, directly from an AI chat
+## Your ChatGPT quota. Your own Windows PC. Real coding from anywhere.
 
-**Chat to code. Code to execution. Execution back to chat.**
+**Give instructions on your phone. Let your PC handle the code, build and tests.**
 
 MiceHole is a Windows local execution layer for AI/MCP clients. Rather than only returning snippets, the assistant can read and edit real project files, run commands, inspect Git, run tests and wait for longer processes.
 
@@ -12,7 +12,7 @@ MiceHole is a Windows local execution layer for AI/MCP clients. Rather than only
 
 **Tested today:** standalone Windows x64 local stdio MCP server, with nine general-purpose tools (status, read, write, patch, search, run, process, git, validate).
 
-**Not yet generally available:** one-click remote ChatGPT integration for regular Free/Plus accounts or ChatGPT mobile. ChatGPT full custom MCP write support has its own plan/client restrictions. A secure remote relay and complete outside-user onboarding are not bundled in this preview.
+**The owner's existing remote MiceHole deployment has demonstrated ChatGPT-to-Windows execution, including use from a phone.** The separate GitHub Universal installer does not yet deliver this remote onboarding for new customers, and full write access for ChatGPT accounts is subject to current official limitations. ChatGPT full custom MCP write support has its own plan/client restrictions. A secure remote relay and complete outside-user onboarding are not bundled in this preview.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ The future remote product goal adds a secure, authenticated bridge from an eligi
 4. Set up a compatible MCP client's local stdio command to the installed **micehole.cmd**.
 5. Use a disposable project in your configured workspace for the first trial.
 
-Additional guides: [Install](INSTALL.md), [Connect](CONNECT.md), [Release gates](RELEASE.md).
+Additional guides: [Use MiceHole in ChatGPT (Chinese)](CHATGPT-QUICKSTART.md), [Install](INSTALL.md), [Connect](CONNECT.md), [Release gates](RELEASE.md).
 
 ## Roadmap and trust
 
