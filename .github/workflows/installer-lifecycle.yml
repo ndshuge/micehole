@@ -33,6 +33,9 @@ jobs:
       - name: Perform real per-user install and uninstall without reboot
         shell: powershell
         run: .\scripts\tests\verify-installer-lifecycle.ps1
+      - name: Register and remove opt-in watchdog task (CI runner only)
+        shell: powershell
+        run: .\scripts\tests\verify-autostart-task-ci.ps1
       - name: Verify portable and protected remote launcher
         shell: powershell
         run: .\scripts\verify-portable.ps1

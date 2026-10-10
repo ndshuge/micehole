@@ -77,7 +77,7 @@ if($Action -eq 'Start'){
 }
 if($Action -eq 'Stop' -or $Action -eq 'Remove'){
   $existing=Get-Existing
-  $finished=($null -eq $existing)
+  $finished=($null -eq $existing -or [string]$existing.State -ne 'Running')
   if($existing){
     Disable-ScheduledTask -TaskName $taskName -TaskPath $taskPath | Out-Null
     New-Item -ItemType Directory -Force -Path $StateRoot|Out-Null
@@ -85,7 +85,7 @@ if($Action -eq 'Stop' -or $Action -eq 'Remove'){
     Set-Content -LiteralPath $stopFlag -Value 'operator-requested-stop' -Encoding ASCII
     if($Action -eq 'Remove'){Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false}
     # Wait for the supervised child to exit; do not kill unowned processes by name or PID.
-    for($i=0;$i -lt 25;$i++){
+    for($i=0;(-not $finished) -and $i -lt 25;$i++){
       if(Test-Path -LiteralPath $stateFile){
         try{
           $snapshot=Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json
