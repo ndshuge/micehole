@@ -11,6 +11,7 @@ if([string]::IsNullOrWhiteSpace($installPart) -or [string]::IsNullOrWhiteSpace($
 if($installPart -match '(?i)remote-autostart\.ps1|MiceHole Personal Tunnel Supervisor|Register-ScheduledTask'){throw 'Installer must not silently enable remote background access'}
 if($removePart -notmatch 'remote-autostart\.ps1'){throw 'Uninstaller does not remove the personal task'}
 if($removePart -notmatch '\-Action Remove'){throw 'Uninstaller does not request task removal'}
+if($removePart -notmatch 'RunOnceId:\s*"MiceHolePersonalTaskCleanup"'){throw 'Uninstall cleanup must have a unique RunOnceId'}
 if($iss -notmatch 'MiceHole Control'){throw 'Missing management UI shortcut'}
 $stage=Join-Path $root 'dist\stage'
 if(Test-Path -LiteralPath $stage){
