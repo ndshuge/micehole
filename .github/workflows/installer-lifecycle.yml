@@ -1,0 +1,41 @@
+name: Clean Windows install and uninstall
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  install-lifecycle:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Download pinned official Tunnel client
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\scripts\fetch-tunnel-client.ps1
+      - name: Install signed Inno compiler in temporary runner
+        shell: powershell
+        run: .\scripts\bootstrap-inno.ps1
+      - name: Build Windows Setup.exe and portable ZIP
+        shell: powershell
+        run: .\scripts\build-release.ps1
+      - name: Verify installer contract
+        shell: powershell
+        run: .\scripts\verify-installer-contract.ps1
+      - name: Perform real per-user install and uninstall without reboot
+        shell: powershell
+        run: .\scripts\tests\verify-installer-lifecycle.ps1
+      - name: Verify portable and protected remote launcher
+        shell: powershell
+        run: .\scripts\verify-portable.ps1
+      - name: Check clean-VM runner has no product registry after uninstall
+        shell: powershell
+        run: .\scripts\tests\verify-installer-lifecycle.ps1 -PlanOnly

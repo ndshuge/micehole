@@ -15,13 +15,13 @@
 - [x] Official tunnel-client v0.0.15 Windows x64 archive pinned to SHA256 3B53133A1E24D43F63088D843860CB1701A4C3ED6390DE2E19F69089E43BDDC1, with its LICENSE and NOTICE included in the distribution.
 - [x] Actual owner production runtime, Tunnel poll, Supervisor and Doctor observed healthy without changing production configuration.
 - [x] Independent public user-level Supervisor script simulated with a fake Tunnel: detect crash, restart owned process, recover /readyz, release process on exit. UI provides explicit opt-in controls; task registration itself is only dry-run tested.
-- [x] Inno Setup uninstall hook now requests removal of only MiceHole's per-user scheduled task; static install/uninstall contract verified. Actual uninstall remains pending clean-account validation.
+- [x] Inno Setup uninstall hook removes only the personal task. A **real silent install → safe bootstrap → silent uninstall** completed successfully in a unique QA directory on the owner's current Windows session without reboot; clean hosted Windows Runner verification is tracked separately.
 - [x] Private GitHub repository, bilingual README, draft installer/ZIP and Windows GitHub Actions workflow.
 
 ## Blocking before public release
 
 - [ ] **Security:** personal Tunnel is now a limited file-editing preview with remote shell permanently locked. For the full Codex-like remote build/run workflow, resolve same-user DPAPI key access by separating execution from Tunnel credentials with a distinct Windows security principal or reviewed broker; independent audit required.
-- [ ] **Installation:** clean Windows user/VM Setup.exe install, upgrade, uninstall, no global Node dependency, no unexpected services/tasks, user settings preserved.
+- [ ] **Installation:** no-reboot real install/uninstall and bundled Node smoke test passed in an isolated current-user directory; clean independent Windows Runner, upgrade over prior version and another-user profile remain to verify.
 - [ ] **Remote pairing:** complete private-Tunnel runtime with a real separate test account. Validate tunnel association with the correct Platform organization and ChatGPT workspace, discovery, writable MCP tools and revocation.
 - [ ] **Supported accounts:** document exactly which ChatGPT plans and web/mobile versions can create and call write-capable private MCP plugins. Do not equate an author's granted connection with universal eligibility.
 - [ ] **Reliability:** User-level watchdog is now packaged and simulated crash/recovery passed. Still verify actual scheduled-task registration, uninstall cleanup, real network failures, reboot/logon and sleep/wake on a clean Windows account; no orphan processes.
@@ -47,7 +47,9 @@ From repository root in Windows PowerShell:
 6. powershell -NoProfile -File scripts/verify-tunnel-onboarding.ps1
 7. powershell -NoProfile -File scripts/tests/verify-supervisor.ps1
 8. powershell -NoProfile -File scripts/verify-installer-contract.ps1
-9. node scripts/public-preflight.mjs
+9. powershell -NoProfile -File scripts/tests/verify-installer-lifecycle.ps1 -PlanOnly
+10. powershell -NoProfile -File scripts/tests/verify-installer-lifecycle.ps1 (only on an isolated Windows account with no Universal installation)
+11. node scripts/public-preflight.mjs
 
 Tests use disposable fixtures; builds are separate from production MiceHole/Tunnel.
 

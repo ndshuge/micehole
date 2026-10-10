@@ -47,7 +47,11 @@ try {
     fs.linkSync(path.join(outside,"canary.txt"),hardlink);
     await reject("mouse_hole_read",{path:"external-hardlink.txt"});
     await reject("mouse_hole_write",{path:"external-hardlink.txt",content:"NO"});
-    checks.push("outside-file hardlinks denied");
+    const leaked=await dispatch("mouse_hole_search",{pattern:"CONFIDENTIAL_CANARY",limit:20});
+    assert.equal(leaked.results.length,0,"Search must not traverse hard-linked outside content");
+    const matches=await dispatch("mouse_hole_search",{search_type:"files",pattern:"external-hardlink"});
+    assert.equal(matches.results.length,0,"File name search must also exclude hardlinks");
+    checks.push("outside-file hardlinks denied in read/write/search");
   }catch(error) {
     if(!["EPERM","EACCES","ENOTSUP","EXDEV"].includes(error.code))throw error;
     checks.push("hardlink test skipped (filesystem permission)");
@@ -66,7 +70,9 @@ try {
   if(linkCreated){
     await reject("mouse_hole_read",{path:"escape-link\\canary.txt"});
     await reject("mouse_hole_write",{path:"escape-link\\overwrite.txt",content:"BAD"});
-    checks.push("directory link to outside rejected");
+    const leaked=await dispatch("mouse_hole_search",{pattern:"CONFIDENTIAL_CANARY",limit:20});
+    assert.equal(leaked.results.length,0,"Search must not traverse junctions to outside content");
+    checks.push("directory link to outside rejected including search");
   }else checks.push("junction test skipped (OS privilege restriction)");
   assert.equal(fs.readFileSync(path.join(outside,"canary.txt"),"utf8"),"CONFIDENTIAL_CANARY");
   assert.ok(!fs.existsSync(path.join(outside,"write.txt")));

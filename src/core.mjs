@@ -102,11 +102,15 @@ function listSearch(cfg, args) {
   const results=[]; const stack=[folder]; let scanned=0; const limit=Math.min(100,Math.max(1,Number(args.limit)||30));
   while(stack.length && scanned<5000 && results.length<limit) {
     const dir=stack.pop();
+    try { safePath(cfg, dir); } catch { continue; }
     for(const ent of fs.readdirSync(dir,{withFileTypes:true})) {
       if(results.length>=limit || scanned>=5000) break;
       scanned++;
       if(SKIP.has(ent.name) || DENY_PARTS.test(ent.name) || ent.isSymbolicLink()) continue;
       const file=path.join(dir,ent.name);
+      // Search results need the same canonical path checks as read/write.
+      // Otherwise NTFS hardlinks and junctions can exfiltrate files outside the workspace.
+      try { safePath(cfg, file); } catch { continue; }
       if(ent.isDirectory()){stack.push(file);continue;}
       if(!ent.isFile())continue;
       const rel=relative(cfg,file);
