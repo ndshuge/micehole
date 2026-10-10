@@ -39,5 +39,8 @@ jobs:
       - name: Validate personal Tunnel offline first-run configuration
         shell: powershell
         run: .\scripts\verify-tunnel-onboarding.ps1
+      - name: Test Supervisor crash and recovery with isolated fake Tunnel
+        shell: powershell
+        run: .\scripts\tests\verify-supervisor.ps1
       - name: Scan tracked files for accidental secrets
         run: node scripts/public-preflight.mjs

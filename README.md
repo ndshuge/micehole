@@ -80,7 +80,7 @@ flowchart TB
 
 - **[自托管个人 Tunnel 安装指南](docs/SELF-HOSTED.md)**：内置官方客户端、个人 Tunnel 初始化、凭据保存、连接检查、在 ChatGPT 添加插件。
 - **[ChatGPT 端使用指南](docs/CHATGPT-QUICKSTART.md)**：如何选择插件以及给出真正执行任务的指令。
-- 初版 **MiceHole Control** 是只读状态面板；**尚不包含**公开版后台自动恢复。生产版已有更成熟的 Supervisor，但仍待移植与验收。
+- **MiceHole Control** 现可查看状态并由用户主动开启、停止、移除后台 Supervisor。模拟 Tunnel 崩溃→重启→恢复已通过测试，但全新 Windows 账户的开机自启、卸载及网络断线验收仍在进行。
 
 > 重要：远程配置生成已通过隔离测试；新的真实账号首次连接、权限边界与手机端操作尚未验收。**不要将预览版当作已审核的远程执行安全产品。**
 

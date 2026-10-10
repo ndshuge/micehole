@@ -6,7 +6,7 @@ Add-Type -AssemblyName System.Drawing
 $stateRoot=Join-Path $env:LOCALAPPDATA 'MiceHole\remote'
 $window=New-Object System.Windows.Forms.Form
 $window.Text='MiceHole Control — Personal Tunnel'
-$window.ClientSize=New-Object System.Drawing.Size(640,395)
+$window.ClientSize=New-Object System.Drawing.Size(640,470)
 $window.StartPosition='CenterScreen'
 $window.FormBorderStyle='FixedSingle'
 $window.MaximizeBox=$false
@@ -26,6 +26,7 @@ $runtime=Label 'Local MCP entry: checking...' 26 114 580 28 11
 $tunnel=Label 'Personal Tunnel: checking...' 26 152 580 28 11
 $key=Label 'Credential: checking...' 26 190 580 28 11
 $help=Label 'Tunnel and plugin setup require your own OpenAI Platform permissions.' 26 240 580 26 9
+$background=Label 'Background recovery: checking...' 26 220 580 28 11
 function Button([string]$name,[int]$x,[int]$y,[int]$w){
   $b=New-Object System.Windows.Forms.Button
   $b.Text=$name
@@ -38,10 +39,16 @@ $refresh=Button 'Refresh status' 26 290 138
 $openTunnel=Button 'Tunnel dashboard' 176 290 138
 $openChat=Button 'ChatGPT plugins' 326 290 138
 $openDocs=Button 'Usage guide' 476 290 138
-$note=Label 'No public ports are opened by this UI. This preview has no automatic restart button.' 26 356 585 24 8
+$installAuto=Button 'Enable background' 26 340 183
+$stopAuto=Button 'Stop background' 226 340 182
+$removeAuto=Button 'Remove autostart' 426 340 188
+$note=Label 'Background mode is opt-in and runs as your Windows user. Command execution is not sandboxed.' 26 414 587 44 9
 function Refresh-State {
   $settings=Join-Path $stateRoot 'settings.json'
   $keyFile=Join-Path $stateRoot 'runtime-key.dpapi'
+  $task=$null
+  try{$task=Get-ScheduledTask -TaskName 'MiceHole Personal Tunnel Supervisor' -TaskPath '\MiceHole\' -ErrorAction Stop}catch{}
+  $background.Text= if($task){'Background recovery: '+[string]$task.State+' / '+$(if($task.Settings.Enabled){'enabled'}else{'disabled'})}else{'Background recovery: not enabled'}
   if(-not(Test-Path -LiteralPath $settings)){ $runtime.Text='Local MCP entry: not configured';$tunnel.Text='Personal Tunnel: setup required';$key.Text='Credential: not configured';return }
   try{
     $cfg=Get-Content -LiteralPath $settings -Raw|ConvertFrom-Json
@@ -54,6 +61,29 @@ function Refresh-State {
     }catch{ $tunnel.Text='Personal Tunnel: stopped, unreachable, or unhealthy' }
   }catch{$runtime.Text='Local MCP entry: configuration error';$tunnel.Text='Personal Tunnel: unknown'}
 }
+function Run-BackgroundAction([string]$action){
+  $manager=Join-Path $PSScriptRoot 'remote-autostart.ps1'
+  try{
+    $lines=(& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $manager -Action $action 2>&1 | Out-String)
+    if($LASTEXITCODE -ne 0){throw $lines}
+    [System.Windows.Forms.MessageBox]::Show($lines,'MiceHole Background')|Out-Null
+  }catch{[System.Windows.Forms.MessageBox]::Show($_.Exception.Message,'MiceHole Background Error')|Out-Null}
+  Refresh-State
+}
+$installAuto.Add_Click({
+  $answer=[System.Windows.Forms.MessageBox]::Show('Install and start a per-user logon watchdog? This enables background networking using YOUR Tunnel credential.','Confirm Background Start','YesNo','Warning')
+  if($answer -eq 'Yes'){
+    $task=$null;try{$task=Get-ScheduledTask -TaskName 'MiceHole Personal Tunnel Supervisor' -TaskPath '\MiceHole\' -ErrorAction Stop}catch{}
+    if(-not $task){Run-BackgroundAction 'Install'}
+    Run-BackgroundAction 'Start'
+  }
+})
+$stopAuto.Add_Click({
+  if([System.Windows.Forms.MessageBox]::Show('Disable scheduled recovery and request your owned Tunnel to stop?','Confirm Stop','YesNo','Question') -eq 'Yes'){Run-BackgroundAction 'Stop'}
+})
+$removeAuto.Add_Click({
+  if([System.Windows.Forms.MessageBox]::Show('Remove the MiceHole background task? Your personal settings are preserved.','Confirm Remove','YesNo','Warning') -eq 'Yes'){Run-BackgroundAction 'Remove'}
+})
 $refresh.Add_Click({Refresh-State})
 $openTunnel.Add_Click({
   $settings=Join-Path $stateRoot 'settings.json'
