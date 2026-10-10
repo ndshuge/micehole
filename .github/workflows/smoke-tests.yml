@@ -57,3 +57,23 @@ jobs:
         run: .\scripts\cloud\verify-cloud-workflow.ps1
       - name: Scan tracked files for accidental secrets
         run: node scripts/public-preflight.mjs
+      - name: Publish development and verification summary
+        if: always()
+        shell: powershell
+        env:
+          VERIFICATION_STATUS: ${{ job.status }}
+        run: |
+          $short = $env:GITHUB_SHA.Substring(0,8)
+          @(
+            '## MiceHole · Windows verification'
+            ''
+            ('- Commit: `' + $short + '`')
+            ('- Workflow outcome: **' + $env:VERIFICATION_STATUS + '**')
+            '- Scope: local MCP, Windows path safety, worker IPC fixture, native peer SID negative test, portable ZIP, personal Tunnel offline setup, watchdog simulated recovery, publish preflight.'
+            '- Real distinct-SID disposable worker test is a separate workflow; passing this workflow is NOT production security approval.'
+            '- Actual Windows reboot and separate-user ChatGPT pairing are NOT validated here.'
+            ''
+            '- [Development journal](https://github.com/ndshuge/micehole/blob/main/docs/DEVLOG.md)'
+            '- [Current issues](https://github.com/ndshuge/micehole/issues)'
+            '- [Release gates](https://github.com/ndshuge/micehole/blob/main/docs/RELEASE.md)'
+          ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

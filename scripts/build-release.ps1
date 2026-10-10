@@ -16,7 +16,7 @@ Copy-Item (Join-Path $root 'scripts\micehole.cmd') (Join-Path $stage 'micehole.c
 Copy-Item (Join-Path $root 'scripts\micehole-remote.cmd') (Join-Path $stage 'micehole-remote.cmd')
 # tunnel-client is not redistributed; each user selects an official binary during setup.
 # Ship only documented, reviewed release assets; concurrent prototypes stay out of EXE/ZIP.
-foreach($file in @('CHATGPT-QUICKSTART.md','CONNECT.md','INSTALL.md','PLUGIN-LISTING.md','README.en.md','README.zh-CN.md','RELEASE.md','RELEASE_NOTES_v0.1.0.md','SECURITY.md','SELF-HOSTED.md','WORKER_ISOLATION.md','PRE_REBOOT_GATE.md','CLOUD_REBOOT.md','PRODUCT_SCOPE.md')){
+foreach($file in @('CHATGPT-QUICKSTART.md','CONNECT.md','INSTALL.md','PLUGIN-LISTING.md','README.en.md','README.zh-CN.md','RELEASE.md','RELEASE_NOTES_v0.1.0.md','SECURITY.md','SELF-HOSTED.md','WORKER_ISOLATION.md','PRE_REBOOT_GATE.md','CLOUD_REBOOT.md','PRODUCT_SCOPE.md','DEVLOG.md','CONTRIBUTING.md')){
   Copy-Item (Join-Path $root ('docs\'+$file)) (Join-Path $stage 'docs')
 }
 Copy-Item (Join-Path $root 'README.md') (Join-Path $stage 'README.md')

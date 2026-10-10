@@ -14,7 +14,7 @@
 [![No MiceHole API](https://img.shields.io/badge/MiceHole%20API%20Key-Not%20Required-18A999)](#-免费是什么意思)
 [![Local Tests](https://img.shields.io/badge/Local%20Smoke%20Tests-Passing-238636)](#-项目进度)
 
-**[开始使用 ChatGPT 插件](docs/CHATGPT-QUICKSTART.md) · [Windows 安装](docs/INSTALL.md) · [English](docs/README.en.md) · [安全须知](docs/SECURITY.md)**
+**[开发日志](docs/DEVLOG.md) · [GitHub 开发进度](https://github.com/ndshuge/micehole/milestones) · [Windows 安装](docs/INSTALL.md) · [ChatGPT 插件](docs/CHATGPT-QUICKSTART.md) · [English](docs/README.en.md) · [安全须知](docs/SECURITY.md)**
 
 </div>
 
@@ -125,7 +125,7 @@ flowchart TB
 | 普通账号远程 ChatGPT 接入 | ⏳ 尚未实现 |
 | 与 Codex 同任务测评 | ⏳ 待测 |
 
-[产品目标与明确不做的事情](docs/PRODUCT_SCOPE.md) · [查看完整测试与发布清单](docs/RELEASE.md)
+[查看开发过程与真实测试证据](docs/DEVLOG.md) · [当前开发 Issues](https://github.com/ndshuge/micehole/issues) · [阶段里程碑](https://github.com/ndshuge/micehole/milestones) · [产品目标](docs/PRODUCT_SCOPE.md) · [完整验收清单](docs/RELEASE.md)
 
 ## 📚 更多文档
 
