@@ -89,7 +89,7 @@ try{
     zip_sha256=if(Test-Path -LiteralPath $zip){(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash}else{$null}
     tests=$tests.ToArray()
     post_gate_blockers=@(
-      'distinct-SID worker + DPAPI key denial not provisioned/tested',
+      'production worker with dedicated Windows security boundary and actual Tunnel credential ACL is not implemented; disposable LocalService proof does not substitute',
       'real separate-user OpenAI Tunnel/ChatGPT web and phone pairing not validated',
       'cold reboot + logon autostart + sleep/wake and proxy recovery untested',
       'public security review / supported account matrix and external Beta consent pending'

@@ -75,7 +75,21 @@ or the user's other application credentials.
       users or changing ACLs. This tests the kernel-backed SID observation primitive,
       **not** a distinct-SID worker or pipe DACL.
 - [ ] Validate a worker installer provisioning/rollback plan on a throwaway Windows account or VM.
-- [ ] Run a real distinct-SID worker and prove Access Denied to the DPAPI key/other home data. A dedicated GitHub-hosted Windows experiment now tests this with the built-in **LocalService SID** and an isolated dummy credential, rather than creating a user on the owner's machine. Its results must be confirmed before checking this item; a full production Worker remains separate.
+- [x] **Disposable Windows CI proof** (2026-10-10): a scheduled test process ran as
+      built-in LocalService (S-1-5-19), demonstrably distinct from the broker runner
+      SID. Real NTFS ACLs denied access to the broker's **dummy** DPAPI credential,
+      while allowing writes to an explicitly scoped worker workspace. CI run:
+      https://github.com/ndshuge/micehole/actions/runs/38021364814
+      No new user account or reboot was required. **Important:** LocalService is a
+      shared built-in service principal, so it is suitable for proving a *different
+      token/ACL boundary*, not automatically a sufficient production per-app sandbox.
+      The final design needs a dedicated/restricted service SID or comparably isolated
+      account and explicit per-app ACLs.
+- [ ] **Production Worker proof**: turn that fixture into a signed/controlled
+      Worker service, enforce named-pipe ACL and kernel peer-SID authentication,
+      verify access denial to real per-user Tunnel secrets using a separate test
+      profile, and include install/revoke/rollback. The local fixture is not yet
+      connected to ChatGPT MCP and cannot execute remote commands.
       This is an authorized OS-level mutation, deferred past the present safety gate.
 
 ## Post-pre-reboot steps

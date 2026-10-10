@@ -46,6 +46,10 @@ production service ports* to assert they stayed untouched.
 The gate writes machine-readable evidence to
 `qa-fixture/pre-reboot-gate/report.json`. A successful result is
 `PRE_REBOOT_GATE=PASS` **and** `PUBLIC_RELEASE_GATE=BLOCKED`.
+The new Broker/Worker IPC fixture and Windows peer-SID negative tests raise the
+current local Gate to **11 checks**. A separate GitHub-hosted W1 proof demonstrated
+a real distinct LocalService SID and denied dummy credential access, but it does not
+unlock full remote command execution.
 If these appear together, it means non-reboot checks are complete — **not**
 that we may publish the full remote shell product.
 

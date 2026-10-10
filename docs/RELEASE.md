@@ -12,7 +12,8 @@
 - [x] Windows MCP handshake, nine tool schemas, text read/write/patch/search, Git, run, validate, process wait.
 - [x] Automated negative tests for default-disabled shell, escaping workspace, credential-looking paths, Windows junctions, NTFS hardlinks, alternate streams and special device names.
 - [x] Protected personal-Tunnel entry point advertises only five file/status tools and refuses run/validate/process/git even when local execution is enabled; test verified on packaged Windows runtime.
-- [x] **Worker W0 prototype:** independent sanitized test process, local pipe transport, simulated authentication, spoof/oversized request rejection and remote execution disabled. Native Windows named-pipe peer SID negative control passed; real distinct-SID Worker and credential access denial remain outstanding.
+- [x] **Worker W0 prototype:** independent sanitized test process, local pipe transport, simulated authentication, spoof/oversized request rejection and remote execution disabled. Native Windows named-pipe peer SID negative control passed.
+- [x] **Worker W1 disposable Windows proof:** GitHub-hosted LocalService (S-1-5-19) actually ran under a distinct SID, could write approved workspace, and received Access Denied on a dummy Broker DPAPI credential file. NOT a production worker, IPC peer authorization and real Tunnel isolation still blocking.
 - [x] Portable ZIP unpack-and-run test using bundled Node, including ensuring mock control-plane key variables are removed from MCP command shells.
 - [x] Script syntax test and official tunnel-client init profile generation tested with a fake tunnel ID in an isolated local directory.
 - [x] Official tunnel-client v0.0.15 Windows x64 archive pinned to SHA256 3B53133A1E24D43F63088D843860CB1701A4C3ED6390DE2E19F69089E43BDDC1, with its LICENSE and NOTICE included in the distribution.
