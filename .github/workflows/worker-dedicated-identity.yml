@@ -1,0 +1,25 @@
+name: W2-C dedicated Windows Worker identity (disposable CI only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dedicated-worker-identity:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify dedicated account, ACL, authenticated IPC and cleanup
+        shell: powershell
+        run: .\scripts\tests\verify-dedicated-worker-ci.ps1
+      - name: Upload sanitized CI evidence (no keys)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: w2c-dedicated-worker-ci-proof
+          path: qa-fixture/dedicated-worker-ci-proof.json
+          if-no-files-found: warn
+          retention-days: 7
