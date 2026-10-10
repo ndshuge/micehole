@@ -2,7 +2,7 @@
 
 **Product:** Each user brings their own ChatGPT allowance, their own OpenAI Secure MCP Tunnel, and their own Windows computer. MiceHole runs authorized coding work on that PC. No separate MiceHole model API is required.
 
-**Status:** PRIVATE / DRAFT only. Passing CI does not authorize public publication.
+**Status:** PUBLIC v0.1.0 limited file-operations Beta authorized by the maintainer on 2026-10-10; **NOT** the full remote execution release. The checklist below documents unfinished higher-risk features and independent-user validation.
 
 **Product definition:** see [PRODUCT_SCOPE.md](PRODUCT_SCOPE.md). Each eligible user brings their own Windows PC, Secure MCP Tunnel and private ChatGPT MCP plugin; public directory listing is explicitly out of scope.
 
@@ -24,11 +24,11 @@
 - [x] Actual owner production runtime, Tunnel poll, Supervisor and Doctor observed healthy without changing production configuration.
 - [x] Independent public user-level Supervisor script simulated with a fake Tunnel: detect crash, restart owned process, recover /readyz, release process on exit. UI provides explicit opt-in controls; task registration itself is only dry-run tested.
 - [x] Inno Setup uninstall hook removes only the personal task. A **real silent install → safe bootstrap → silent uninstall** completed successfully in a unique QA directory on the owner's current Windows session without reboot; clean hosted Windows Runner verification is tracked separately.
-- [x] Private GitHub repository, bilingual README, draft installer/ZIP and Windows GitHub Actions workflow.
+- [x] GitHub repository, bilingual README, installer/ZIP build pipeline and Windows GitHub Actions workflow. Public first beta is a **limited five-tool remote preview**, not a public unrestricted terminal.
 - [x] GitHub standard Windows Runner read-only nested-virtualization capability probe completed. A separate, manually gated Azure VM reboot workflow is staged; NO real VM reboot has occurred, as no Azure VM/OIDC settings are connected.
 - [x] Non-reboot current-session install/uninstall PASS, with an isolated bootstrap directory. A reusable `pre-reboot-gate.ps1` and dedicated clean-hosted Windows installer workflow are available; they do not prove worker identity isolation or reboot survival.
 
-## Blocking before public release
+## Not yet validated (and blocking any claim of full remote coding or stable general availability)
 
 - [ ] **Security:** personal Tunnel is now a limited file-editing preview with remote shell permanently locked. For the full Codex-like remote build/run workflow, resolve same-user DPAPI key access by separating execution from Tunnel credentials with a distinct Windows security principal or reviewed broker; independent audit required.
 - [ ] **Installation:** no-reboot real install/uninstall and bundled Node smoke test passed in an isolated current-user directory; clean independent Windows Runner, upgrade over prior version and another-user profile remain to verify.

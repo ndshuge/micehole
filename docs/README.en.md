@@ -1,44 +1,42 @@
-# MiceHole — Free Codex-like coding with your ChatGPT allowance
+# MiceHole Universal v0.1.0 Beta
 
-## Your ChatGPT quota. Your own Windows PC. Real coding from anywhere.
+**Your Windows PC. Your own ChatGPT and Secure MCP Tunnel.**
 
-**Give instructions on your phone. Let your PC handle the code, build and tests.**
+[Downloads](https://github.com/ndshuge/micehole/releases) · [Install](INSTALL.md) · [Tunnel setup](SELF-HOSTED.md) · [Security](SECURITY.md) · [Main README](../README.md)
 
-MiceHole is a Windows local execution layer for AI/MCP clients. Rather than only returning snippets, the assistant can read and edit real project files, run commands, inspect Git, run tests and wait for longer processes.
+This is an independent, **early public preview**—not official Codex, a free
+ChatGPT subscription or a complete remote coding automation system.
 
-> **What “free Codex” means:** This is an easy-to-understand description of the experience we are building, **not an official free edition of OpenAI Codex**. MiceHole does not require a separate MiceHole model API subscription, but your AI client, model and ChatGPT entitlements still apply.
+## What works today
 
-## Current availability
+| Capability | Local stdio MCP | Personal Tunnel in ChatGPT |
+| --- | --- | --- |
+| Status and workspace file read/search | Yes | Yes |
+| Workspace file write/precise patch | Yes | Yes |
+| Run/validate/Git/process tools | Explicit local opt-in only; **not sandboxed** | **Disabled** |
+| Autonomous edit→run→test→fix loop | Depends on local client and opt-in | **Not supported** |
+| Custom private ChatGPT plugin eligibility | Not applicable | Account/workspace/client-dependent; not verified for an independent user |
 
-**Tested today:** standalone Windows x64 local stdio MCP server with nine general-purpose tools (status, read, write, patch, search, run, process, git, validate). **Personal Tunnel currently allows only five file/status tools**; remote command execution, Git processes and test runs are locked until the Tunnel credential and coding worker use separate Windows security identities.
+The installed app includes a verified copy of the official OpenAI
+`tunnel-client`, a local Node runtime, configuration scripts, Doctor and
+optional opt-in background recovery. Setup needs **your own** OpenAI Platform
+Tunnel ID and runtime credential; do not paste secrets into ChatGPT or GitHub.
 
-**The owner's existing remote MiceHole deployment has demonstrated ChatGPT-to-Windows execution, including use from a phone.** The separate GitHub Universal installer does not yet deliver this remote onboarding for new customers, and full write access for ChatGPT accounts is subject to current official limitations. ChatGPT full custom MCP write support has its own plan/client restrictions. The ZIP and installer now include the official, hash-verified OpenAI tunnel-client and a personal Tunnel setup script. Independent new-user remote onboarding and credential security hardening have **not** passed release review.
+## First steps
 
-## Architecture
+1. Download unsigned Windows x64 Setup.exe or portable ZIP plus SHA256SUMS.txt
+   from the [v0.1.0 beta Release](https://github.com/ndshuge/micehole/releases).
+2. Compare SHA256 checksums, install as your current user, run Doctor, and
+   choose a disposable approved workspace.
+3. Use [CONNECT](CONNECT.md) for compatible local stdio MCP clients, or
+   [SELF-HOSTED](SELF-HOSTED.md) for personal ChatGPT Tunnel initialization.
+4. Start the Tunnel in the foreground, verify status, then try status/read/
+   write/patch/search in a test workspace if your account permits it.
 
-- Compatible local MCP client
-- MiceHole Universal (user-space Windows Node runtime)
-- Configured workspace and approved command execution
-- Files, Git, build tools and validation output returned to the AI
+**Caveats:** no full remote shell; independent ChatGPT user pairing, real
+reboot/sleep recovery, signed installer, external security audit and
+upgrade/rollback have not been completed. Do not bypass Windows security
+warnings or expose a raw MCP port to the public Internet.
 
-Use your own OpenAI Secure MCP Tunnel and a compatible ChatGPT plugin; the installer includes the official tunnel-client binary, but account authorization and Plugin setup are not automatic. Never expose a bare MCP command-execution endpoint to the public internet.
-
-## Quick start
-
-1. Once published, download the ZIP or installer from GitHub Releases.
-2. Run **scripts/doctor.cmd**. Your private configuration lives outside the application directory.
-3. Read [Security](SECURITY.md). Commands are disabled until you explicitly opt in.
-4. For your own OpenAI Tunnel, follow [Personal Tunnel setup](SELF-HOSTED.md); the official client is already included.
-5. Connect a compatible ChatGPT plugin or local MCP client and start in a disposable project.
-
-Additional guides: [Use MiceHole in ChatGPT (Chinese)](CHATGPT-QUICKSTART.md), [Install](INSTALL.md), [Connect](CONNECT.md), [Release gates](RELEASE.md).
-
-## Roadmap and trust
-
-The Preview has passing local protocol and tool smoke tests, but has **not** passed a fresh-machine installation/security review, independent remote-user compatibility test or fair Codex comparison. Binary releases should be published only after these gates pass.
-
-You do **not** need Godot, Blender, ComfyUI, Unity, a dedicated GPU or a project-specific integration.
-
-This project is independent of and not endorsed by OpenAI. Earlier project prototypes used Desktop Commander as an execution backend for some general operations. The simplified Universal Preview contains a standalone core, which does not establish comparative performance.
-
-The Universal Preview source is MIT-licensed; bundled Node.js, tunnel-client and Cloudflared components retain their own license and NOTICE files.
+[Development evidence](DEVLOG.md) · [Known blockers](RELEASE.md).
+MIT project source; Node and tunnel-client retain third-party licenses.

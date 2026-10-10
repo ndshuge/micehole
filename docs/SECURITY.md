@@ -1,6 +1,6 @@
 # MiceHole security policy / 安全边界
 
-**Status: release candidate preparation; not independently audited.**
+**Status: public v0.1.0 limited preview; not independently audited. Remote command execution remains disabled.**
 
 MiceHole is a local command executor, **not a secure sandbox**. It gives an authorized AI/MCP client access to a Windows workspace and, after explicit opt-in, the ability to run arbitrary commands with the privileges of its Windows account. This is a powerful trust decision.
 
@@ -21,7 +21,7 @@ MiceHole is a local command executor, **not a secure sandbox**. It gives an auth
 4. **Untrusted repository code:** npm, pip, cargo, git hooks, test scripts, and project-specific tools can execute code; review before running.
 5. **New-user support:** ChatGPT and OpenAI Tunnel access are account/workspace dependent. A local installer cannot grant missing Platform permissions, model quota or mobile support.
 
-## Before any public download announcement
+## Before advertising full remote coding or a stable security-reviewed release
 
 - Security audit, automated regression tests and Windows clean-user install/uninstall.
 - Validate installer signatures/provenance, checksum manifests and dependency licenses.

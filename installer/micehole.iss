@@ -1,11 +1,11 @@
-; MiceHole Universal private-release preview installer
+; MiceHole Universal v0.1.0 public limited-beta installer
 #define AppName "MiceHole Universal"
 #define AppVersion "0.1.0"
 [Setup]
 AppId={{06EF1EC2-BC39-49E8-9AE5-97978956A51E}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppPublisher=MiceHole Community Preview
+AppPublisher=MiceHole Community Beta
 DefaultDirName={localappdata}\Programs\MiceHole
 DefaultGroupName=MiceHole Universal
 DisableProgramGroupPage=yes
@@ -16,7 +16,7 @@ OutputBaseFilename=MiceHole-Universal-0.1.0-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayName=MiceHole Universal Preview
+UninstallDisplayName=MiceHole Universal Beta
 ChangesAssociations=no
 ChangesEnvironment=no
 [Files]

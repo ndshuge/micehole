@@ -1,19 +1,43 @@
-# MiceHole Universal v0.1.0 — Private preview
+# MiceHole Universal v0.1.0 Beta — public early-access preview
 
-The first independently testable Universal edition provides nine basic MCP tools and does **not** depend on Godot, Blender, ComfyUI or an extra model API.
+**Windows x64 · unsigned per-user installer / portable ZIP · independent community project.**
 
-## Validated
-- Windows Node.js stdio MCP server initialize and tools/list
-- Workspace file read/write/patch/search
-- Shell command, Git status and validation execution
-- Persistent process start/wait/output/status
-- Rejections for some suspicious file paths and ambiguous edits
+This is the **first limited public download**, not the finished end-to-end
+remote software-development agent.
 
-## Not yet qualified for public distribution
-- Remote ChatGPT full write support for arbitrary consumers
-- Independent security audit / Windows Sandbox testing
-- Fresh-account installer and uninstaller test
-- Fair comparisons against Codex
-- Third-party software license and distribution review
+## Included
 
-Read SECURITY.md carefully. Shell execution is disabled by default. No remote tunnel is provided by this release.
+- A standalone Windows MCP engine with bundled Node.js runtime.
+- Basic workspace status, read, write, patch and search.
+- Experimental user-owned Secure MCP Tunnel configuration using the verified
+  official tunnel-client and user-supplied personal Platform credentials.
+- Protected remote launcher advertises **only five file/status tools**. It
+  blocks remote shell, Git, validation and process operations even if local
+  shell has been enabled.
+- Optional per-user MiceHole Control / Doctor with explicitly opt-in background
+  task. No unattended autostart on install.
+- Local stdio MCP mode supports extra shell/Git/process/validate with a
+  **separate explicit opt-in**. Local commands are not a secure sandbox.
+
+## Verified
+
+Local file-operation/security regression tests, packaged remote tool
+restrictions, portable ZIP with bundled Node/tunnel-client, simulated
+Supervisor crash/recovery, and isolated real install/uninstall on Windows.
+W0–W2-C worker security experiments are CI-only and **not shipped/enabled**.
+
+## Important limitations
+
+- A clean unrelated person's real ChatGPT account / Tunnel pairing has **not**
+  been verified; some accounts/workspaces/clients cannot add custom write-capable
+  private MCP plugins.
+- Remote code execution, automated run/test/fix, Git and long process sessions
+  are **not available** in this version.
+- Installer is **unsigned**. No promise that SmartScreen will accept it.
+- DPAPI protects secrets at rest but not from untrusted code executed as the
+  same Windows user; therefore remote command execution remains locked.
+- Cold reboot, sleep/wake, multi-network recovery, real upgrade/rollback and
+  independent external security assessment are outstanding.
+
+Start with [INSTALL](INSTALL.md), [SELF-HOSTED](SELF-HOSTED.md) and
+[SECURITY](SECURITY.md). Do not share Tunnel keys or API credentials in issues.

@@ -76,7 +76,7 @@ Documentation, UI and release notes must not call this a complete Codex-like age
 
 ## Release thresholds
 
-- **Private Preview (current):** source and basic local MCP can be tested; no public promotion.
+- **Public limited v0.1.0 Beta:** source and Windows binary with five remote file/status tools; remote execution locked; account compatibility and independent third-party pairing not guaranteed.
 - **Invitation Beta:** different user can independently complete a real personal-Tunnel
   remote code+test task, and high-severity access paths have been reviewed; list limitations.
 - **Mature public self-hosted app:** multiple independent users, verified recovery and

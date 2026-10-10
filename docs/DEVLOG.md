@@ -22,7 +22,7 @@ For historical source details use commit history; for current acceptance status 
 | Real product reboot and reconnection | [Stability issue](https://github.com/ndshuge/micehole/issues/7) | **Not verified** |
 
 These statuses intentionally distinguish tested prototypes from a mature public release.
-This repository is currently **Private** and its downloadable preview Release remains **Draft**.
+First public limited Beta is authorized for 2026-10-10; release is restricted to five remote file/status tools. The earlier private-only wording records the previous development phase.
 
 ## Timeline
 
