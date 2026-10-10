@@ -24,6 +24,8 @@ During this gate:
 | --- | --- | --- |
 | Local MCP behavior | `scripts/smoke-test.mjs` | nine local tools still work |
 | File and path safety | `scripts/security-test.mjs` | deny escape, junctions, hardlinks, ADS, secrets |
+| Broker/Worker IPC fixture | `tests/worker-ipc.test.mjs` | temporary local pipe; fake peer auth; commands fail closed, no real OS identity |
+| Windows peer identity negative control | `tests/verify-windows-pipe-peer.ps1` | kernel-backed same-user SID observed; therefore insufficient for command isolation |
 | Remote least privilege | `scripts/remote-safe-test.mjs` via `verify-portable.ps1` | remote only five file/status tools; no shell |
 | Tunnel initial setup | `verify-tunnel-onboarding.ps1` | fake Tunnel ID, official CLI, no real key |
 | Watchdog recovery | `tests/verify-supervisor.ps1` | simulate crash, recover, kill owned test child |

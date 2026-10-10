@@ -1,6 +1,6 @@
 $ErrorActionPreference='Stop'
 $base=$PSScriptRoot
-$files=@('remote-setup.ps1','remote-save-key.ps1','remote-doctor.ps1','remote-run.ps1','remote-control.ps1','remote-supervisor.ps1','remote-autostart.ps1','tests\verify-supervisor.ps1','fetch-tunnel-client.ps1','verify-portable.ps1','verify-tunnel-onboarding.ps1','verify-installer-contract.ps1','tests\verify-installer-lifecycle.ps1','tests\pre-reboot-gate.ps1','tests\verify-autostart-task-ci.ps1')
+$files=@('remote-setup.ps1','remote-save-key.ps1','remote-doctor.ps1','remote-run.ps1','remote-control.ps1','remote-supervisor.ps1','remote-autostart.ps1','tests\verify-supervisor.ps1','fetch-tunnel-client.ps1','verify-portable.ps1','verify-tunnel-onboarding.ps1','verify-installer-contract.ps1','tests\verify-installer-lifecycle.ps1','tests\pre-reboot-gate.ps1','tests\verify-autostart-task-ci.ps1','tests\verify-windows-pipe-peer.ps1','tests\verify-worker-service-identity-ci.ps1')
 $allOk=$true
 foreach($name in $files){
   $tokens=$null;$parseErrors=$null

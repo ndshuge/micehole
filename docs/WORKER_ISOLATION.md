@@ -62,10 +62,20 @@ or the user's other application credentials.
 - [x] Keep remote command invocation locked independently of `executionEnabled`.
 - [x] Remote tool discovery advertises only the five file/status tools.
 - [x] Negative workspace/file alias and search traversal tests.
-- [ ] Develop the Broker↔Worker IPC prototype with fake tokens / synthetic identities
-      **in an offline, unprivileged fixture**. This does not prove OS isolation.
+- [x] Develop the Broker↔Worker IPC prototype with fake tokens / synthetic identities
+      **in an offline, unprivileged fixture**. Node named-pipe transport tested:
+      sanitized mock environment, request frames, fake authentication, malformed
+      messages, and refusal of execute/process/git/validate, including forged
+      client-provided attestation. It does **not** prove OS isolation or authenticate
+      a Windows client SID. The prototype is CI-only and explicitly EXCLUDED from
+      downloadable public releases; the remote MCP tool list remains five tools.
+- [x] Prove real Windows named-pipe peer identity can be read through
+      `NamedPipeServerStream.RunAsClient` / `WindowsIdentity.GetCurrent(true)`.
+      Same-user negative control passed on the author's Windows session without creating
+      users or changing ACLs. This tests the kernel-backed SID observation primitive,
+      **not** a distinct-SID worker or pipe DACL.
 - [ ] Validate a worker installer provisioning/rollback plan on a throwaway Windows account or VM.
-- [ ] Run a real distinct-SID worker and prove Access Denied to the DPAPI key/other home data.
+- [ ] Run a real distinct-SID worker and prove Access Denied to the DPAPI key/other home data. A dedicated GitHub-hosted Windows experiment now tests this with the built-in **LocalService SID** and an isolated dummy credential, rather than creating a user on the owner's machine. Its results must be confirmed before checking this item; a full production Worker remains separate.
       This is an authorized OS-level mutation, deferred past the present safety gate.
 
 ## Post-pre-reboot steps

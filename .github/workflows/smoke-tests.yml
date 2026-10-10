@@ -22,6 +22,11 @@ jobs:
         run: node scripts/smoke-test.mjs
       - name: Run isolated security regression tests
         run: node scripts/security-test.mjs
+      - name: Verify experimental broker/worker local IPC safety
+        run: node scripts/tests/worker-ipc.test.mjs
+      - name: Observe genuine Windows named-pipe client SID (same-user negative control)
+        shell: powershell
+        run: .\scripts\tests\verify-windows-pipe-peer.ps1
       - name: Validate Personal Tunnel onboarding scripts
         shell: powershell
         run: .\scripts\check-remote-syntax.ps1
