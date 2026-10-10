@@ -14,6 +14,7 @@
 - [x] Official tunnel-client v0.0.15 Windows x64 archive pinned to SHA256 3B53133A1E24D43F63088D843860CB1701A4C3ED6390DE2E19F69089E43BDDC1, with its LICENSE and NOTICE included in the distribution.
 - [x] Actual owner production runtime, Tunnel poll, Supervisor and Doctor observed healthy without changing production configuration.
 - [x] Independent public user-level Supervisor script simulated with a fake Tunnel: detect crash, restart owned process, recover /readyz, release process on exit. UI provides explicit opt-in controls; task registration itself is only dry-run tested.
+- [x] Inno Setup uninstall hook now requests removal of only MiceHole's per-user scheduled task; static install/uninstall contract verified. Actual uninstall remains pending clean-account validation.
 - [x] Private GitHub repository, bilingual README, draft installer/ZIP and Windows GitHub Actions workflow.
 
 ## Blocking before public release
@@ -44,7 +45,8 @@ From repository root in Windows PowerShell:
 5. powershell -NoProfile -File scripts/verify-portable.ps1
 6. powershell -NoProfile -File scripts/verify-tunnel-onboarding.ps1
 7. powershell -NoProfile -File scripts/tests/verify-supervisor.ps1
-8. node scripts/public-preflight.mjs
+8. powershell -NoProfile -File scripts/verify-installer-contract.ps1
+9. node scripts/public-preflight.mjs
 
 Tests use disposable fixtures; builds are separate from production MiceHole/Tunnel.
 

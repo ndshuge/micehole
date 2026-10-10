@@ -28,3 +28,6 @@ Name: "{autoprograms}\MiceHole Installation Folder"; Filename: "{app}"
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\scripts\setup-config.ps1"""; Flags: runhidden waituntilterminated
 Filename: "{app}\README.md"; Description: "Read MiceHole README"; Flags: shellexec postinstall skipifsilent unchecked
+[UninstallRun]
+; Remove only the explicit per-user MiceHole task; never alter OpenHanako services.
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\scripts\remote-autostart.ps1"" -Action Remove"; Flags: runhidden waituntilterminated

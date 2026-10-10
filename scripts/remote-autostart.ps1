@@ -77,11 +77,24 @@ if($Action -eq 'Start'){
 }
 if($Action -eq 'Stop' -or $Action -eq 'Remove'){
   $existing=Get-Existing
+  $finished=($null -eq $existing)
   if($existing){
     Disable-ScheduledTask -TaskName $taskName -TaskPath $taskPath | Out-Null
     New-Item -ItemType Directory -Force -Path $StateRoot|Out-Null
+    $requestTime=[DateTime]::UtcNow
     Set-Content -LiteralPath $stopFlag -Value 'operator-requested-stop' -Encoding ASCII
     if($Action -eq 'Remove'){Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false}
+    # Wait for the supervised child to exit; do not kill unowned processes by name or PID.
+    for($i=0;$i -lt 25;$i++){
+      if(Test-Path -LiteralPath $stateFile){
+        try{
+          $snapshot=Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json
+          $recent=([DateTime]::Parse($snapshot.time).ToUniversalTime() -ge $requestTime.AddSeconds(-1))
+          if($recent -and $snapshot.state -eq 'STOPPED' -and $null -eq $snapshot.pid){$finished=$true;break}
+        }catch{}
+      }
+      Start-Sleep -Seconds 1
+    }
   }
-  Write-Output ($Action.ToUpperInvariant()+'_REQUESTED=TRUE; only MiceHole-owned child is stopped by Supervisor')
+  Write-Output ($Action.ToUpperInvariant()+'_REQUESTED=TRUE; owned_child_stopped='+$finished)
 }
