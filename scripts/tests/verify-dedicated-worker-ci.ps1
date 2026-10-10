@@ -88,10 +88,22 @@ try {
   }
   New-Item -ItemType Directory -Force -Path $secretDir,$workspace|Out-Null
   PermitWorkspaceParentTraverse $qa
-  $dummy=Join-Path $secretDir 'runtime-key.dpapi'
-  Set-Content -LiteralPath $dummy -Value 'CI_DUMMY_NOT_A_REAL_KEY' -Encoding ASCII
+  # CRITICAL: apply restrictive directory ACL *before* creating the file.
+  # If the file exists first, it may retain old inherited Users/Everyone ACLs.
   RestrictDirectory $secretDir $false
   RestrictDirectory $workspace $true
+  $dummy=Join-Path $secretDir 'runtime-key.dpapi'
+  Set-Content -LiteralPath $dummy -Value 'CI_DUMMY_NOT_A_REAL_KEY' -Encoding ASCII
+  # Also enforce a protected DACL on the credential file itself.
+  $fileAcl=Get-Acl -LiteralPath $dummy
+  $fileAcl.SetAccessRuleProtection($true,$false)
+  foreach($id in @($brokerSid,'S-1-5-18')){
+    $fileAcl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(
+      (New-Object Security.Principal.SecurityIdentifier($id)),
+      [Security.AccessControl.FileSystemRights]::FullControl,
+      [Security.AccessControl.AccessControlType]::Allow)))
+  }
+  Set-Acl -LiteralPath $dummy -AclObject $fileAcl
 
   Add-Type -Path (Join-Path $repo 'src\worker\WindowsPipeAttestor.cs') -ErrorAction Stop
   if(-not [MiceHole.SecurityExperiment.WindowsPipeAttestor]::RejectSameUserClient()){
