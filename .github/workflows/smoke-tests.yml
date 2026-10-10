@@ -20,3 +20,6 @@ jobs:
           node-version: '24'
       - name: Run local isolated MCP tests
         run: node scripts/smoke-test.mjs
+      - name: Validate Personal Tunnel onboarding scripts
+        shell: powershell
+        run: .\scripts\check-remote-syntax.ps1

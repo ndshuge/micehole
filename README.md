@@ -74,6 +74,16 @@ flowchart TB
 
 **新用户先看 [ChatGPT 插件使用指南](docs/CHATGPT-QUICKSTART.md)。** 具体账号的插件安装、远程连接和写入权限，以 ChatGPT 实际支持为准。当前 Universal 下载包不是即装即用的手机远程插件。
 
+## 🔐 使用你自己的 OpenAI Tunnel
+
+**自托管远程接入预览已经开始提供：** 用户准备自己的 OpenAI Secure MCP Tunnel 与运行凭据后，可用官方 tunnel-client 生成配置，让兼容的 ChatGPT 插件调用本机 MCP 工具。
+
+- **[自托管个人 Tunnel 安装指南](docs/SELF-HOSTED.md)**：Tunnel 初始化、个人凭据保存、连接检查、在 ChatGPT 添加插件。
+- **[ChatGPT 端使用指南](docs/CHATGPT-QUICKSTART.md)**：如何选择插件以及给出真正执行任务的指令。
+- 初版 **MiceHole Control** 是只读状态面板；**尚不包含**公开版后台自动恢复。生产版已有更成熟的 Supervisor，但仍待移植与验收。
+
+> 重要：远程配置生成已通过隔离测试；新的真实账号首次连接、权限边界与手机端操作尚未验收。**不要将预览版当作已审核的远程执行安全产品。**
+
 ## 📦 下载与安装
 
 | 发布文件 | 用途 | 状态 |
@@ -116,7 +126,7 @@ flowchart TB
 
 ## 📚 更多文档
 
-[ChatGPT 端使用指南](docs/CHATGPT-QUICKSTART.md) · [插件介绍文案](docs/PLUGIN-LISTING.md) · [中文介绍](docs/README.zh-CN.md) · [English](docs/README.en.md) · [安装](docs/INSTALL.md) · [连接](docs/CONNECT.md) · [安全](docs/SECURITY.md) · [验收](docs/RELEASE.md)
+[个人 Tunnel 自托管指南](docs/SELF-HOSTED.md) · [ChatGPT 端使用指南](docs/CHATGPT-QUICKSTART.md) · [插件介绍文案](docs/PLUGIN-LISTING.md) · [中文介绍](docs/README.zh-CN.md) · [English](docs/README.en.md) · [安装](docs/INSTALL.md) · [连接](docs/CONNECT.md) · [安全](docs/SECURITY.md) · [验收](docs/RELEASE.md)
 
 ---
 

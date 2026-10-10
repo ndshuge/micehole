@@ -18,7 +18,13 @@ Typical MCP client configuration (check your client's syntax):
 
 This uses your existing client/model. MiceHole does not sell or supply model tokens.
 
-## Remote ChatGPT — demonstrated in owner's existing deployment, not yet generally distributable
+## Remote ChatGPT — personal Tunnel setup preview
+
+The GitHub install now includes an **early self-hosted personal Tunnel initialization path** based on the official OpenAI tunnel-client. It is not a completed, audited third-party remote onboarding experience. See [SELF-HOSTED.md](SELF-HOSTED.md) for the precise commands and limitations.
+
+### Production-owner implementation vs preview
+
+The owner uses a mature supervised runtime. The downloadable Universal Preview still uses the smaller local stdio engine and its remote setup currently requires user-supplied tunnel-client and credentials. **No public plugin distribution or general mobile compatibility is claimed.**
 
 The intended architecture is ChatGPT -> authenticated and encrypted remote MCP channel -> Windows MiceHole -> allowlisted local workspace. The owner currently has a separate live MiceHole connection in ChatGPT that can issue remote Windows tool calls, but the Universal Preview package is a different distribution target and does not include this onboarding.
 

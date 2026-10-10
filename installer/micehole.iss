@@ -23,6 +23,7 @@ ChangesEnvironment=no
 Source: "..\dist\stage\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
 Name: "{autoprograms}\MiceHole Doctor"; Filename: "{app}\scripts\doctor.cmd"; WorkingDir: "{app}"
+Name: "{autoprograms}\MiceHole Control"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\remote-control.ps1"""; WorkingDir: "{app}"
 Name: "{autoprograms}\MiceHole Installation Folder"; Filename: "{app}"
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File ""{app}\scripts\setup-config.ps1"""; Flags: runhidden waituntilterminated

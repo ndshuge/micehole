@@ -7,10 +7,11 @@ if(Test-Path -LiteralPath $stage){Remove-Item -LiteralPath $stage -Recurse -Forc
 New-Item -ItemType Directory -Force -Path $stage,(Join-Path $stage 'runtime'),(Join-Path $stage 'src'),(Join-Path $stage 'scripts'),(Join-Path $stage 'docs') | Out-Null
 Copy-Item (Join-Path $root 'src\*.mjs') (Join-Path $stage 'src')
 Copy-Item (Join-Path $root 'scripts\doctor.cmd') (Join-Path $stage 'scripts\doctor.cmd')
-foreach($file in @('setup-config.ps1','enable-execution.ps1','disable-execution.ps1')){
+foreach($file in @('setup-config.ps1','enable-execution.ps1','disable-execution.ps1','remote-setup.ps1','remote-save-key.ps1','remote-doctor.ps1','remote-run.ps1','remote-control.ps1')){
   Copy-Item (Join-Path $root ('scripts\'+$file)) (Join-Path $stage ('scripts\'+$file))
 }
 Copy-Item (Join-Path $root 'scripts\micehole.cmd') (Join-Path $stage 'micehole.cmd')
+# tunnel-client is not redistributed; each user selects an official binary during setup.
 Copy-Item (Join-Path $root 'docs\*.md') (Join-Path $stage 'docs')
 Copy-Item (Join-Path $root 'README.md') (Join-Path $stage 'README.md')
 $node = 'C:\Program Files\nodejs\node.exe'
