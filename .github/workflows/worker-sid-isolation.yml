@@ -15,11 +15,16 @@ jobs:
       - name: Verify actual separate Windows LocalService SID and protected dummy credential
         shell: powershell
         run: .\scripts\tests\verify-worker-service-identity-ci.ps1
+      - name: Verify real Windows named-pipe DACL and actual LocalService peer SID
+        shell: powershell
+        run: .\scripts\tests\verify-worker-pipe-acl-ci.ps1
       - name: Upload security evidence (no keys or private files)
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: worker-sid-isolation-evidence
-          path: qa-fixture/worker-sid-ci-proof.json
+          path: |
+            qa-fixture/worker-sid-ci-proof.json
+            qa-fixture/worker-pipe-ci-proof.json
           if-no-files-found: warn
           retention-days: 7

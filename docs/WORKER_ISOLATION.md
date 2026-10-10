@@ -85,6 +85,15 @@ or the user's other application credentials.
       token/ACL boundary*, not automatically a sufficient production per-app sandbox.
       The final design needs a dedicated/restricted service SID or comparably isolated
       account and explicit per-app ACLs.
+- [ ] **W2-A pipe integration**: test-only `src/worker/WindowsPipeAttestor.cs` now
+      opens a Windows named pipe with explicit Broker/Worker SID rules, validates
+      the connecting client using kernel impersonation and refuses a same-user
+      connection. The disposable Windows CI test runs an authenticated LocalService
+      process that can perform only a fixed workspace marker action and cannot
+      read a dummy Broker credential. It does **not** claim a production-safe
+      Worker, as LocalService is shared and pipe server identity, exclusive
+      instance protection, IPC replay resistance and process containment remain.
+      GitHub CI acceptance is required before marking the test positive.
 - [ ] **Production Worker proof**: turn that fixture into a signed/controlled
       Worker service, enforce named-pipe ACL and kernel peer-SID authentication,
       verify access denial to real per-user Tunnel secrets using a separate test

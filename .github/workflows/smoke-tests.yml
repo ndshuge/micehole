@@ -27,6 +27,12 @@ jobs:
       - name: Observe genuine Windows named-pipe client SID (same-user negative control)
         shell: powershell
         run: .\scripts\tests\verify-windows-pipe-peer.ps1
+      - name: Fail-closed Windows pipe attestor same-user rejection
+        shell: powershell
+        run: |
+          Add-Type -Path src\worker\WindowsPipeAttestor.cs -ErrorAction Stop
+          if (-not [MiceHole.SecurityExperiment.WindowsPipeAttestor]::RejectSameUserClient()) { throw 'A same-user peer bypassed Windows SID gate' }
+          Write-Output 'BROKER_PIPE_SAME_USER_NEGATIVE=PASS'
       - name: Validate Personal Tunnel onboarding scripts
         shell: powershell
         run: .\scripts\check-remote-syntax.ps1

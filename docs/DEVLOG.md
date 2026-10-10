@@ -26,6 +26,28 @@ This repository is currently **Private** and its downloadable preview Release re
 
 ## Timeline
 
+### 2026-10-10 — W2-A kernel-authenticated IPC integration
+
+**Problem:** Fake-token IPC and a standalone Windows SID test did not yet prove that
+Broker could authenticate a real **other-SID** Worker over a restrictive pipe.
+
+**Implementation:** Added test-only `WindowsPipeAttestor`: explicit Windows named-pipe
+ACL with just Broker and expected Worker SIDs; kernel-provided connecting client's SID;
+same-user connection rejected. A disposable GitHub-hosted LocalService client performs
+only a fixed workspace marker action after approval and verifies the dummy Broker
+credential is inaccessible. No public-release binaries include this prototype.
+
+**Evidence:** [Issue #2](https://github.com/ndshuge/micehole/issues/2) ·
+[GitHub worker identity workflow](https://github.com/ndshuge/micehole/actions/workflows/worker-sid-isolation.yml).
+The OS-level positive test is subject to the current run; do not call it passed until
+GitHub Actions reports success.
+
+**Limit:** LocalService is a shared identity. This does not implement dedicated
+Worker provisioning, mutual channel authentication, IPC replay protections, job-object
+process containment or production remote execution. The 5-tool Tunnel safety lock stays on.
+
+
+
 ### 2026-10-10 — GitHub engineering history and milestones
 
 **Decision:** Keep building directly with ChatGPT/MiceHole; GitHub records the decision, code,
