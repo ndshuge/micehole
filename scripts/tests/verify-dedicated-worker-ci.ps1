@@ -186,7 +186,22 @@ finally {
   $server=[MiceHole.SecurityExperiment.WindowsPipeAttestor]::Create($pipeName,$brokerSid,$workerSid)
   try {
     Start-ScheduledTask -TaskName $taskName -TaskPath $taskPath
-    $result=[MiceHole.SecurityExperiment.WindowsPipeAttestor]::AuthorizeOnce($server,$workerSid,13000)
+    try {
+      $result=[MiceHole.SecurityExperiment.WindowsPipeAttestor]::AuthorizeOnce($server,$workerSid,13000)
+    } catch {
+      $taskState='unknown';$taskResult='unknown'
+      try{
+        $taskState=[string](Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction Stop).State
+        $taskResult=[string](Get-ScheduledTaskInfo -TaskName $taskName -TaskPath $taskPath -ErrorAction Stop).LastTaskResult
+      }catch{}
+      $workerError='none'
+      if(Test-Path -LiteralPath $proof){
+        try {$workerError=[string]((Get-Content -LiteralPath $proof -Raw|ConvertFrom-Json).error)}catch{}
+      }
+      throw ('Dedicated Worker failed to connect; scheduler_state='+$taskState+
+        '; last_result='+$taskResult+'; worker_error_type='+$workerError+
+        '; failure='+$_.Exception.GetType().Name)
+    }
   } finally { $server.Dispose() }
 
   for($i=0;$i -lt 150 -and -not(Test-Path -LiteralPath $proof);$i++){Start-Sleep -Milliseconds 400}
