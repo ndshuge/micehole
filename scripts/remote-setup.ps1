@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$true)][string]$TunnelId,
-  [Parameter(Mandatory=$true)][string]$TunnelClient,
+  [string]$TunnelClient = '',
   [string]$InstallRoot = '',
   [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'MiceHole\remote'),
   [string]$ProfileName = 'micehole-personal',
@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 if([string]::IsNullOrWhiteSpace($InstallRoot)) { $InstallRoot = Split-Path -Parent $PSScriptRoot }
+if([string]::IsNullOrWhiteSpace($TunnelClient)) { $TunnelClient = Join-Path $InstallRoot 'tunnel-client\tunnel-client.exe' }
 if($TunnelId -notmatch '^tunnel_[A-Za-z0-9_-]{12,128}$') { throw 'Invalid Tunnel ID format. Copy your own tunnel_id from OpenAI Platform.' }
 if($ProfileName -notmatch '^[a-zA-Z0-9_-]{1,64}$') { throw 'Invalid profile name' }
 if($HealthPort -lt 1024 -or $HealthPort -gt 65535) { throw 'HealthPort must be between 1024 and 65535' }

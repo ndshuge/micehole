@@ -11,6 +11,7 @@
 - [x] Automated negative tests for default-disabled shell, escaping workspace, credential-looking paths and Windows junctions.
 - [x] Portable ZIP unpack-and-run test using bundled Node, including ensuring mock control-plane key variables are removed from MCP command shells.
 - [x] Script syntax test and official tunnel-client init profile generation tested with a fake tunnel ID in an isolated local directory.
+- [x] Official tunnel-client v0.0.15 Windows x64 archive pinned to SHA256 3B53133A1E24D43F63088D843860CB1701A4C3ED6390DE2E19F69089E43BDDC1, with its LICENSE and NOTICE included in the distribution.
 - [x] Actual owner production runtime, Tunnel poll, Supervisor and Doctor observed healthy without changing production configuration.
 - [x] Private GitHub repository, bilingual README, draft installer/ZIP and Windows GitHub Actions workflow.
 
@@ -22,7 +23,7 @@
 - [ ] **Supported accounts:** document exactly which ChatGPT plans and web/mobile versions can create and call write-capable private MCP plugins. Do not equate an author's granted connection with universal eligibility.
 - [ ] **Reliability:** package a reviewed user-level watchdog and measure disconnect/reconnect, computer reboot/logon, sleep/wake, proxy changes; no orphan processes.
 - [ ] **Permission model:** explicit workspace consent, safe-default shell off, visible warnings for privileged shell and external network calls; clearer approval UX.
-- [ ] **Supply chain:** verify official tunnel-client version and Apache 2.0 notices if bundled; Node license/version match; Inno Setup edition and permitted use; checksum/provenance; antivirus/SmartScreen behavior.
+- [ ] **Supply chain:** official tunnel-client archive and notices are now pinned and packaged. Still validate Node license/version match; Inno Setup permitted commercial use if applicable; executable checksum/provenance; antivirus/SmartScreen behavior.
 - [ ] **Release hygiene:** privacy-preserving log report, public vulnerability reporting, signed/not signed warning, real screenshots, final no-secret audit.
 
 ## Release model
@@ -40,7 +41,8 @@ From repository root in Windows PowerShell:
 3. powershell -NoProfile -File scripts/check-remote-syntax.ps1
 4. powershell -NoProfile -File scripts/build-release.ps1 -ZipOnly
 5. powershell -NoProfile -File scripts/verify-portable.ps1
-6. node scripts/public-preflight.mjs
+6. powershell -NoProfile -File scripts/verify-tunnel-onboarding.ps1
+7. node scripts/public-preflight.mjs
 
 Tests use disposable fixtures; builds are separate from production MiceHole/Tunnel.
 

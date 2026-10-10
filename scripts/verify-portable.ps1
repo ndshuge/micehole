@@ -13,7 +13,7 @@ $oldConfig=[Environment]::GetEnvironmentVariable('MICEHOLE_CONFIG','Process')
 try {
   $distribution=Join-Path $temp 'app'
   Expand-Archive -LiteralPath $archivePath -DestinationPath $distribution -Force
-  foreach($file in @('micehole.cmd','runtime\node.exe','src\server.mjs','scripts\remote-setup.ps1','scripts\remote-doctor.ps1','scripts\remote-control.ps1')){
+  foreach($file in @('micehole.cmd','runtime\node.exe','src\server.mjs','scripts\remote-setup.ps1','scripts\remote-doctor.ps1','scripts\remote-control.ps1','tunnel-client\tunnel-client.exe','tunnel-client\LICENSE','tunnel-client\NOTICE','LICENSE')){
     if(-not(Test-Path -LiteralPath (Join-Path $distribution $file) -PathType Leaf)) {throw ('Missing packaged file: '+$file)}
   }
   $workspace=Join-Path $temp 'workspace'

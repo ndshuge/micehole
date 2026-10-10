@@ -9,7 +9,7 @@
 - Windows x64 with MiceHole Universal installed.
 - Your OpenAI Platform Tunnel ID, Tunnel runtime API key, and required Platform Tunnels Read + Use permission; Tunnel creation needs Manage.
 - ChatGPT account/workspace with custom MCP write access on a supported client.
-- Official tunnel-client.exe from OpenAI Platform or openai/tunnel-client releases. This preview does not redistribute it.
+- Windows installer now **bundles verified official tunnel-client v0.0.15**, its license and NOTICE; no separate download is required. Advanced users can supply an alternate official client manually.
 
 ## Quick setup
 
@@ -18,10 +18,10 @@
 3. In PowerShell in your MiceHole installed directory, run:
 
 ~~~powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-setup.ps1 -TunnelId "tunnel_YOUR_ID" -TunnelClient "C:\Path\To\tunnel-client.exe"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-setup.ps1 -TunnelId "tunnel_YOUR_ID"
 ~~~
 
-The script calls the official tunnel-client init with a local stdio MCP command. It prompts for your runtime key without echoing it. The credential is protected using Windows-user DPAPI, never placed in the project or profile YAML.
+The script invokes the bundled verified official tunnel-client to generate a personal stdio MCP profile. An alternate binary can be specified with -TunnelClient. It prompts for your runtime key without echoing it. The credential is protected using Windows-user DPAPI, never placed in the project or profile YAML.
 
 To replace a runtime key, run:
 

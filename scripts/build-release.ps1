@@ -15,6 +15,19 @@ Copy-Item (Join-Path $root 'scripts\micehole.cmd') (Join-Path $stage 'micehole.c
 Copy-Item (Join-Path $root 'docs\*.md') (Join-Path $stage 'docs')
 Copy-Item (Join-Path $root 'README.md') (Join-Path $stage 'README.md')
 Copy-Item (Join-Path $root 'LICENSE') (Join-Path $stage 'LICENSE')
+$vendorRoot = Join-Path $root 'build-tools\vendor\tunnel'
+$vendorZip = Join-Path $vendorRoot 'tunnel-client-v0.0.15-windows-amd64.zip'
+$vendorExpanded = Join-Path $vendorRoot 'expanded'
+$vendorChecksum = '3B53133A1E24D43F63088D843860CB1701A4C3ED6390DE2E19F69089E43BDDC1'
+if(-not(Test-Path -LiteralPath $vendorZip)){throw 'Official tunnel-client missing; run scripts/fetch-tunnel-client.ps1 first.'}
+if((Get-FileHash -LiteralPath $vendorZip -Algorithm SHA256).Hash.ToUpperInvariant() -cne $vendorChecksum){throw 'Official tunnel-client SHA256 mismatch; refusing to package'}
+foreach($required in @('tunnel-client.exe','LICENSE','NOTICE','tunnel-client-v0.0.15-windows-amd64-licenses.txt')){
+  if(-not(Test-Path -LiteralPath (Join-Path $vendorExpanded $required) -PathType Leaf)){throw ('Missing tunnel-client distribution file: '+$required)}
+}
+$vendorStage=Join-Path $stage 'tunnel-client'
+New-Item -ItemType Directory -Force -Path $vendorStage | Out-Null
+Copy-Item -Path (Join-Path $vendorExpanded '*') -Destination $vendorStage -Recurse -Force
+Write-Output 'TUNNEL_CLIENT_BUNDLED=v0.0.15 (official SHA256 verified, with licenses)'
 $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
 $node = if($nodeCommand){$nodeCommand.Source}else{'C:\Program Files\nodejs\node.exe'}
 if(!(Test-Path -LiteralPath $node)){ throw "Node.js executable missing at $node" }

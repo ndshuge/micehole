@@ -25,11 +25,19 @@ jobs:
       - name: Validate Personal Tunnel onboarding scripts
         shell: powershell
         run: .\scripts\check-remote-syntax.ps1
+      - name: Download verified official tunnel-client
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\scripts\fetch-tunnel-client.ps1
       - name: Build portable distribution without Inno Setup
         shell: powershell
         run: .\scripts\build-release.ps1 -ZipOnly
       - name: Test the ZIP with its bundled Node runtime
         shell: powershell
         run: .\scripts\verify-portable.ps1
+      - name: Validate personal Tunnel offline first-run configuration
+        shell: powershell
+        run: .\scripts\verify-tunnel-onboarding.ps1
       - name: Scan tracked files for accidental secrets
         run: node scripts/public-preflight.mjs

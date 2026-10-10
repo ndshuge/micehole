@@ -1,6 +1,6 @@
 $ErrorActionPreference='Stop'
 $base=$PSScriptRoot
-$files=@('remote-setup.ps1','remote-save-key.ps1','remote-doctor.ps1','remote-run.ps1','remote-control.ps1')
+$files=@('remote-setup.ps1','remote-save-key.ps1','remote-doctor.ps1','remote-run.ps1','remote-control.ps1','fetch-tunnel-client.ps1','verify-portable.ps1','verify-tunnel-onboarding.ps1')
 $allOk=$true
 foreach($name in $files){
   $tokens=$null;$parseErrors=$null

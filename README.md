@@ -76,9 +76,9 @@ flowchart TB
 
 ## 🔐 使用你自己的 OpenAI Tunnel
 
-**自托管远程接入预览已经开始提供：** 用户准备自己的 OpenAI Secure MCP Tunnel 与运行凭据后，可用官方 tunnel-client 生成配置，让兼容的 ChatGPT 插件调用本机 MCP 工具。
+**自托管远程接入预览已经开始提供：** 用户准备自己的 OpenAI Secure MCP Tunnel 与运行凭据后，安装包内置的**官方 tunnel-client** 会生成本机连接配置，让兼容的 ChatGPT 插件调用本机 MCP 工具。
 
-- **[自托管个人 Tunnel 安装指南](docs/SELF-HOSTED.md)**：Tunnel 初始化、个人凭据保存、连接检查、在 ChatGPT 添加插件。
+- **[自托管个人 Tunnel 安装指南](docs/SELF-HOSTED.md)**：内置官方客户端、个人 Tunnel 初始化、凭据保存、连接检查、在 ChatGPT 添加插件。
 - **[ChatGPT 端使用指南](docs/CHATGPT-QUICKSTART.md)**：如何选择插件以及给出真正执行任务的指令。
 - 初版 **MiceHole Control** 是只读状态面板；**尚不包含**公开版后台自动恢复。生产版已有更成熟的 Supervisor，但仍待移植与验收。
 
