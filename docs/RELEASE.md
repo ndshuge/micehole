@@ -17,6 +17,7 @@
 - [x] Independent public user-level Supervisor script simulated with a fake Tunnel: detect crash, restart owned process, recover /readyz, release process on exit. UI provides explicit opt-in controls; task registration itself is only dry-run tested.
 - [x] Inno Setup uninstall hook removes only the personal task. A **real silent install → safe bootstrap → silent uninstall** completed successfully in a unique QA directory on the owner's current Windows session without reboot; clean hosted Windows Runner verification is tracked separately.
 - [x] Private GitHub repository, bilingual README, draft installer/ZIP and Windows GitHub Actions workflow.
+- [x] GitHub standard Windows Runner read-only nested-virtualization capability probe completed. A separate, manually gated Azure VM reboot workflow is staged; NO real VM reboot has occurred, as no Azure VM/OIDC settings are connected.
 - [x] Non-reboot current-session install/uninstall PASS, with an isolated bootstrap directory. A reusable `pre-reboot-gate.ps1` and dedicated clean-hosted Windows installer workflow are available; they do not prove worker identity isolation or reboot survival.
 
 ## Blocking before public release

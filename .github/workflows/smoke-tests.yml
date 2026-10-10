@@ -47,5 +47,8 @@ jobs:
       - name: Test Supervisor crash and recovery with isolated fake Tunnel
         shell: powershell
         run: .\scripts\tests\verify-supervisor.ps1
+      - name: Verify optional Azure VM reboot workflow safety (offline)
+        shell: powershell
+        run: .\scripts\cloud\verify-cloud-workflow.ps1
       - name: Scan tracked files for accidental secrets
         run: node scripts/public-preflight.mjs

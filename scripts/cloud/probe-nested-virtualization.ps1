@@ -22,8 +22,9 @@ $report=[ordered]@{
   hyperv_feature_state=$(if($feature){[string]$feature.State}else{'unavailable'})
   hyperv_vmms_present=$null -ne $vmms
   hyperv_newvm_cmd_available=$null -ne $vmcmd
-  nested_guest_reboot_test_ready=($null -ne $vmcmd -and $null -ne $vmms -and [bool]$cpu.VirtualizationFirmwareEnabled)
-  caveat='Nested virtualization is experimental and not guaranteed by GitHub for hosted runners.'
+  nested_guest_reboot_test_ready=($null -ne $vmcmd -and $null -ne $vmms -and [bool]$cpu.VirtualizationFirmwareEnabled -and [bool]$cpu.VMMonitorModeExtensions -and [bool]$cpu.SecondLevelAddressTranslationExtensions)
+  nested_windows_guest_image_available=$false
+  caveat='Hyper-V cmdlets alone do not prove guest virtualization works. Nested virtualization is not guaranteed on GitHub-hosted runners.'
 }
 $destination=Join-Path $PSScriptRoot '..\..\qa-fixture\github-nested-capability.json'
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination)|Out-Null

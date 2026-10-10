@@ -58,6 +58,10 @@ then confirms the product can no longer be found in the registry. Its result
 must be reviewed separately: a clean hosted Windows Runner is not proof of
 compatibility with every Windows account or every ChatGPT plan.
 
+## Cloud OS reboot research
+
+See [CLOUD_REBOOT.md](CLOUD_REBOOT.md). GitHub standard Windows Runner does not provide a guaranteed nested Windows guest; the optional existing Azure VM workflow performs a real OS reboot only after OIDC and dedicated QA VM tags are configured. Until then, no cloud reboot has been performed.
+
 ## Hard stop / gates *after* this point
 
 1. **Windows identity separation** — run AI programs under a different SID,

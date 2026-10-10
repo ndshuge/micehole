@@ -1,0 +1,140 @@
+name: Azure Windows persistent VM reboot verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Choose dry-run or explicitly allow a reboot of a dedicated pre-existing Azure QA VM"
+        required: true
+        default: plan_only
+        type: choice
+        options:
+          - plan_only
+          - reboot_existing_qa_vm
+      deallocate_after:
+        description: "Deallocate the dedicated QA VM after the reboot test to reduce compute charges"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    if: ${{ inputs.mode == 'plan_only' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check whether the repo has configured a dedicated existing Azure VM
+        env:
+          AZ_CLIENT_ID: ${{ vars.MICEHOLE_AZURE_CLIENT_ID }}
+          AZ_TENANT_ID: ${{ vars.MICEHOLE_AZURE_TENANT_ID }}
+          AZ_SUB_ID: ${{ vars.MICEHOLE_AZURE_SUBSCRIPTION_ID }}
+          QA_RG: ${{ vars.MICEHOLE_AZURE_QA_RESOURCE_GROUP }}
+          QA_VM: ${{ vars.MICEHOLE_AZURE_QA_VM_NAME }}
+        run: |
+          missing=()
+          for name in AZ_CLIENT_ID AZ_TENANT_ID AZ_SUB_ID QA_RG QA_VM; do
+            if [ -z "${!name}" ]; then missing+=("$name"); fi
+          done
+          echo "CLOUD_COMPUTE_CREATED=false"
+          echo "GITHUB_RUNNER_REBOOTED=false"
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "DEDICATED_AZURE_VM_CONFIGURED=false"
+            printf 'Missing variable: %s\n' "${missing[@]}"
+            echo "REBOOT_EXECUTED=false"
+          else
+            echo "DEDICATED_AZURE_VM_CONFIGURED=variables_present_only"
+            echo "NOTE=VM ownership tags and Azure permissions are checked only in the explicit reboot path"
+          fi
+  reboot:
+    if: ${{ inputs.mode == 'reboot_existing_qa_vm' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+    environment: cloud-reboot-qa
+    env:
+      QA_RG: ${{ vars.MICEHOLE_AZURE_QA_RESOURCE_GROUP }}
+      QA_VM: ${{ vars.MICEHOLE_AZURE_QA_VM_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject missing dedicated QA target
+        shell: bash
+        run: |
+          test -n "$QA_RG" && test -n "$QA_VM" || {
+            echo "::error::Configure MICEHOLE_AZURE_QA_RESOURCE_GROUP and MICEHOLE_AZURE_QA_VM_NAME first."
+            exit 1
+          }
+      - name: Sign in to Azure by GitHub OIDC (no long-lived client secret)
+        id: azure_login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.MICEHOLE_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.MICEHOLE_AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.MICEHOLE_AZURE_SUBSCRIPTION_ID }}
+      - name: Verify VM's dedicated QA ownership and reboot approval tags
+        id: vm_guard
+        shell: bash
+        run: |
+          az vm show --resource-group "$QA_RG" --name "$QA_VM" -o json > /tmp/micehole-vm.json
+          jq -e '(.tags["micehole-purpose"] == "reboot-qa") and (.tags["micehole-reboot-ok"] == "true")' /tmp/micehole-vm.json > /dev/null || {
+            echo "::error::VM is not explicitly tagged micehole-purpose=reboot-qa AND micehole-reboot-ok=true"
+            exit 1
+          }
+          echo "VM_QA_OWNERSHIP=VERIFIED"
+          echo "No user PC is touched; only the tagged Azure VM is eligible."
+      - name: Record boot state and install disposable startup marker in the Azure VM
+        id: vm_prepare
+        shell: bash
+        run: |
+          az vm run-command invoke --resource-group "$QA_RG" --name "$QA_VM" \
+            --command-id RunPowerShellScript --scripts @scripts/cloud/azure-reboot-prepare.ps1 \
+            --query 'value[0].message' -o tsv | tee cloud-before.txt
+          grep -q 'MICEHOLE_AZURE_PREPARED=PASS' cloud-before.txt || exit 1
+      - name: Actually reboot the dedicated Windows VM
+        shell: bash
+        run: |
+          echo "AZURE_VM_REBOOT_REQUESTED=true"
+          az vm restart --resource-group "$QA_RG" --name "$QA_VM"
+      - name: Observe reboot from outside the VM and verify startup trigger
+        shell: bash
+        run: |
+          success=0
+          for attempt in $(seq 1 10); do
+            if az vm run-command invoke --resource-group "$QA_RG" --name "$QA_VM" \
+              --command-id RunPowerShellScript --scripts @scripts/cloud/azure-reboot-verify.ps1 \
+              --query 'value[0].message' -o tsv > cloud-after.txt 2>&1 &&
+              grep -q 'MICEHOLE_AZURE_REBOOT_VERIFIED=PASS' cloud-after.txt &&
+              grep -q 'MICEHOLE_STARTUP_TRIGGER=PASS' cloud-after.txt; then
+              success=1; break
+            fi
+            sleep 18
+          done
+          cat cloud-after.txt
+          test "$success" = "1"
+      - name: Remove disposable VM startup marker
+        if: ${{ always() && steps.azure_login.outcome == 'success' && steps.vm_guard.outcome == 'success' && steps.vm_prepare.outcome == 'success' }}
+        shell: bash
+        run: |
+          az vm run-command invoke --resource-group "$QA_RG" --name "$QA_VM" \
+            --command-id RunPowerShellScript --scripts @scripts/cloud/azure-reboot-cleanup.ps1 \
+            --query 'value[0].message' -o tsv | tee cloud-cleanup.txt
+      - name: Deallocate dedicated QA VM to limit compute charges
+        if: ${{ always() && steps.azure_login.outcome == 'success' && steps.vm_guard.outcome == 'success' && steps.vm_prepare.outcome == 'success' && inputs.deallocate_after }}
+        shell: bash
+        run: |
+          echo "Deallocating only preconfigured QA VM $QA_VM"
+          az vm deallocate --resource-group "$QA_RG" --name "$QA_VM"
+      - name: Save evidence to workflow artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-persistent-windows-reboot-evidence
+          path: |
+            cloud-before.txt
+            cloud-after.txt
+            cloud-cleanup.txt
+          if-no-files-found: warn
+          retention-days: 7
