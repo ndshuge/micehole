@@ -56,9 +56,10 @@ try {
   $proof=Join-Path $workspace 'worker-result.json'
   $marker=Join-Path $workspace 'task-did-work.txt'
   $workerScript=Join-Path $workspace 'worker-ci.ps1'
+  $commandOutput=Join-Path $workspace 'worker-child-output.txt'
   $source=@'
 $ErrorActionPreference='Stop'
-$state=[ordered]@{worker_sid='';broker_credential_denied=$false;pipe_authenticated=$false;workspace_marker_written=$false;error=''}
+$state=[ordered]@{worker_sid='';broker_credential_denied=$false;pipe_authenticated=$false;workspace_marker_written=$false;bounded_child_executed_as_worker=$false;error=''}
 $pipe=$null
 try {
   $state.worker_sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
@@ -76,6 +77,16 @@ try {
     $state.pipe_authenticated=$true
     Set-Content -LiteralPath '__MARKER__' -Value 'CI_WORKER_EXECUTED_ONLY_AFTER_BROKER_IDENTITY_APPROVAL' -Encoding ASCII
     $state.workspace_marker_written=$true
+    # Fixed, harmless child command used only by disposable CI. This is not a generic shell API.
+    $child=Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\whoami.exe') -ArgumentList '/user' -PassThru -NoNewWindow -RedirectStandardOutput '__COMMAND_OUTPUT__'
+    try {
+      if(-not $child.WaitForExit(6000)) { $child.Kill();throw 'Fixed test child exceeded 6 second budget' }
+      $child.Refresh()
+      if($child.ExitCode -ne 0){throw ('Fixed child exited '+$child.ExitCode)}
+      $out=Get-Content -LiteralPath '__COMMAND_OUTPUT__' -Raw -ErrorAction Stop
+      if($out -notmatch 'S-1-5-19'){throw 'Child did not inherit the restricted Worker SID'}
+      $state.bounded_child_executed_as_worker=$true
+    }finally{$child.Dispose()}
     $pipe.WriteByte(35);$pipe.Flush()
   }else{$state.error='Broker rejected Worker or wrong execution identity'}
 }catch{$state.error=$_.Exception.GetType().Name+': '+$_.Exception.Message}
@@ -88,6 +99,7 @@ finally {
   $source=$source.Replace('__MARKER__',$marker.Replace("'","''"))
   $source=$source.Replace('__PROOF__',$proof.Replace("'","''"))
   $source=$source.Replace('__PIPE_NAME__',$pipeName)
+  $source=$source.Replace('__COMMAND_OUTPUT__',$commandOutput.Replace("'","''"))
   Set-Content -LiteralPath $workerScript -Value $source -Encoding UTF8
 
   $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$workerScript+'"')
@@ -109,7 +121,7 @@ finally {
   if(-not $result.WorkerAcknowledged){throw 'Worker did not acknowledge Broker approval'}
   if($w.worker_sid -ne $workerSid){throw 'Task did not run as the expected Windows SID'}
   if(-not $w.broker_credential_denied){throw 'Worker accessed Broker dummy credential'}
-  if(-not $w.pipe_authenticated -or -not $w.workspace_marker_written -or -not(Test-Path -LiteralPath $marker)){throw ('Worker did not perform authorized marker: '+$w.error)}
+  if(-not $w.pipe_authenticated -or -not $w.workspace_marker_written -or -not(Test-Path -LiteralPath $marker) -or -not $w.bounded_child_executed_as_worker){throw ('Worker did not perform fixed authorized child: '+$w.error)}
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $reportFile) | Out-Null
   [ordered]@{
     ok=$true;broker_and_worker_sids_distinct=$true
@@ -118,12 +130,14 @@ finally {
     same_user_client_rejected=$true
     dummy_broker_credential_denied=$true
     bounded_workspace_action_completed=$true
+    fixed_child_executed_as_worker_sid=$true
     no_real_tunnel_or_owner_pc_mutated=$true
     production_worker_security_verified=$false
     caveat='CI-only LocalService is shared with other services; no production peer hardening, replay protection, job objects or command sandbox proven.'
   }|ConvertTo-Json|Set-Content -LiteralPath $reportFile -Encoding UTF8
   Write-Output 'WINDOWS_PIPE_DACL_AND_KERNEL_PEER_SID=PASS'
   Write-Output 'LOW_PRIVILEGE_WORKSPACE_ACTION=PASS'
+  Write-Output 'FIXED_BOUNDED_CHILD_EXECUTION_UNDER_WORKER_SID=PASS'
   Write-Output 'BROKER_DUMMY_CREDENTIAL_ACL=PASS'
   Write-Output 'REMOTE_SHELL_STILL_LOCKED=PASS'
 } finally {
