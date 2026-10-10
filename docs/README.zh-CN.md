@@ -2,7 +2,7 @@
 
 **手机下指令，电脑真施工。已有 ChatGPT 可用额度，就不必再为了 MiceHole 额外购买编程模型 API。**
 
-MiceHole 把 ChatGPT 的对话式开发体验与 Windows 本机执行连起来：在手机或网页端提出需求，由电脑读取工程、修改代码、运行程序、排查 Bug。作者现有私有远程部署具备这条链路；GitHub Universal Preview 目前只交付本机 MCP 执行引擎，尚未向所有用户提供一键远程接入。
+MiceHole 把 ChatGPT 的对话式开发体验与 Windows 本机执行连起来：在手机或网页端提出需求，由电脑读取工程、修改代码、运行程序、排查 Bug。作者现有私有远程部署具备这条链路；GitHub Universal Preview 现在包含本机 MCP 执行引擎、官方 Tunnel 客户端和个人 Tunnel 配置脚本，但尚未通过第三方账号的实际远程接入、安全隔离与一键安装验收。
 
 通用版本不再要求 Godot、Blender、Unity、ComfyUI，也不要求显卡。它通过 MCP 提供九个通用工具：状态、读取、写入、精确补丁、搜索、限时运行、进程管理、Git 和工程验证。
 
@@ -10,6 +10,7 @@ MiceHole 把 ChatGPT 的对话式开发体验与 Windows 本机执行连起来�
 
 - 已通过：独立的本地 MCP 服务握手和九项工具端到端测试。
 - 已通过：长进程的启动、等待、输出和状态查询。
+- 已通过：官方 Tunnel 客户端 SHA256 校验、安装包内置，以及个人 Tunnel 的离线配置生成。
 - 待验证：安装包在干净 Windows 上的安装卸载。
 - 待解决：让第三方用户通过账号授权、安全远程连接复现作者现有的手机/网页施工链路；目前不能保证任何 ChatGPT Free/Plus 用户均可启用写入型自定义 MCP。
 
@@ -17,6 +18,7 @@ MiceHole 把 ChatGPT 的对话式开发体验与 Windows 本机执行连起来�
 
 安装位置为 %LOCALAPPDATA%\Programs\MiceHole；配置与用户工作区单独存放，卸载不会删除用户工作区。安装后默认关闭任意命令执行；使用者必须阅读安全说明后主动开启。
 
+- [自己的 Tunnel 如何连接？](SELF-HOSTED.md)
 - [在 ChatGPT 里怎么用？](CHATGPT-QUICKSTART.md)
 - [安装指南](INSTALL.md)
 - [安全说明](SECURITY.md)
