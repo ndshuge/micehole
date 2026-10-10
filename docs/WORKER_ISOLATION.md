@@ -93,7 +93,13 @@ or the user's other application credentials.
       read a dummy Broker credential. It does **not** claim a production-safe
       Worker, as LocalService is shared and pipe server identity, exclusive
       instance protection, IPC replay resistance and process containment remain.
-      GitHub CI acceptance is required before marking the test positive.
+      The positive test passed at
+      https://github.com/ndshuge/micehole/actions/runs/38023282919.
+      An extended fixed (non-user-supplied) child process under the Worker SID
+      passed with a six-second wait bound at
+      https://github.com/ndshuge/micehole/actions/runs/38023712838.
+      **Do not** infer that child-process termination, arbitrary commands,
+      Broker server identity, or production isolation has been proven.
 - [ ] **Production Worker proof**: turn that fixture into a signed/controlled
       Worker service, enforce named-pipe ACL and kernel peer-SID authentication,
       verify access denial to real per-user Tunnel secrets using a separate test

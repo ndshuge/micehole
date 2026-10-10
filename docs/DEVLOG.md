@@ -38,9 +38,16 @@ only a fixed workspace marker action after approval and verifies the dummy Broke
 credential is inaccessible. No public-release binaries include this prototype.
 
 **Evidence:** [Issue #2](https://github.com/ndshuge/micehole/issues/2) ·
-[GitHub worker identity workflow](https://github.com/ndshuge/micehole/actions/workflows/worker-sid-isolation.yml).
-The OS-level positive test is subject to the current run; do not call it passed until
-GitHub Actions reports success.
+[First positive restricted-pipe run](https://github.com/ndshuge/micehole/actions/runs/38023282919) ·
+[Fixed child-process run](https://github.com/ndshuge/micehole/actions/runs/38023712838) ·
+[346bbef](https://github.com/ndshuge/micehole/commit/346bbef) ·
+[73827c0](https://github.com/ndshuge/micehole/commit/73827c0).
+
+**Debugging:** The first extra child-command test failed because Windows PowerShell
+`Start-Process -PassThru` did not reliably expose an exit code. Replaced it with
+`System.Diagnostics.Process.Start` and a bounded six-second wait. GitHub Actions
+then proved that a fixed `whoami /user` child runs under LocalService after kernel
+peer-SID approval. It is a **test fixture**, not a general command runner.
 
 **Limit:** LocalService is a shared identity. This does not implement dedicated
 Worker provisioning, mutual channel authentication, IPC replay protections, job-object
