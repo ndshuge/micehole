@@ -56,7 +56,6 @@ try {
   $proof=Join-Path $workspace 'worker-result.json'
   $marker=Join-Path $workspace 'task-did-work.txt'
   $workerScript=Join-Path $workspace 'worker-ci.ps1'
-  $commandOutput=Join-Path $workspace 'worker-child-output.txt'
   $source=@'
 $ErrorActionPreference='Stop'
 $state=[ordered]@{worker_sid='';broker_credential_denied=$false;pipe_authenticated=$false;workspace_marker_written=$false;bounded_child_executed_as_worker=$false;error=''}
@@ -78,12 +77,17 @@ try {
     Set-Content -LiteralPath '__MARKER__' -Value 'CI_WORKER_EXECUTED_ONLY_AFTER_BROKER_IDENTITY_APPROVAL' -Encoding ASCII
     $state.workspace_marker_written=$true
     # Fixed, harmless child command used only by disposable CI. This is not a generic shell API.
-    $child=Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\whoami.exe') -ArgumentList '/user' -PassThru -NoNewWindow -RedirectStandardOutput '__COMMAND_OUTPUT__'
+    $info=New-Object System.Diagnostics.ProcessStartInfo
+    $info.FileName=Join-Path $env:SystemRoot 'System32\whoami.exe'
+    $info.Arguments='/user'
+    $info.UseShellExecute=$false
+    $info.RedirectStandardOutput=$true
+    $info.CreateNoWindow=$true
+    $child=[System.Diagnostics.Process]::Start($info)
     try {
-      if(-not $child.WaitForExit(6000)) { $child.Kill();throw 'Fixed test child exceeded 6 second budget' }
-      $child.Refresh()
+      if(-not $child.WaitForExit(6000)){ $child.Kill();throw 'Fixed test child exceeded 6 second budget' }
       if($child.ExitCode -ne 0){throw ('Fixed child exited '+$child.ExitCode)}
-      $out=Get-Content -LiteralPath '__COMMAND_OUTPUT__' -Raw -ErrorAction Stop
+      $out=$child.StandardOutput.ReadToEnd()
       if($out -notmatch 'S-1-5-19'){throw 'Child did not inherit the restricted Worker SID'}
       $state.bounded_child_executed_as_worker=$true
     }finally{$child.Dispose()}
@@ -99,7 +103,6 @@ finally {
   $source=$source.Replace('__MARKER__',$marker.Replace("'","''"))
   $source=$source.Replace('__PROOF__',$proof.Replace("'","''"))
   $source=$source.Replace('__PIPE_NAME__',$pipeName)
-  $source=$source.Replace('__COMMAND_OUTPUT__',$commandOutput.Replace("'","''"))
   Set-Content -LiteralPath $workerScript -Value $source -Encoding UTF8
 
   $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$workerScript+'"')
