@@ -26,6 +26,8 @@ During this gate:
 | File and path safety | `scripts/security-test.mjs` | deny escape, junctions, hardlinks, ADS, secrets |
 | Broker/Worker IPC fixture | `tests/worker-ipc.test.mjs` | temporary local pipe; fake peer auth; commands fail closed, no real OS identity |
 | Windows peer identity negative control | `tests/verify-windows-pipe-peer.ps1` | kernel-backed same-user SID observed; therefore insufficient for command isolation |
+| Worker Job Object lifecycle | `tests/verify-worker-job-ci.ps1` | suspended start, bounded wait, stop and descendants killed on job close |
+| Worker session streaming | `tests/verify-worker-session-ci.ps1` | real stdout/stderr, status, exit, truncated tails, timeout and Stop inside test Job |
 | Remote least privilege | `scripts/remote-safe-test.mjs` via `verify-portable.ps1` | remote only five file/status tools; no shell |
 | Tunnel initial setup | `verify-tunnel-onboarding.ps1` | fake Tunnel ID, official CLI, no real key |
 | Watchdog recovery | `tests/verify-supervisor.ps1` | simulate crash, recover, kill owned test child |
@@ -46,9 +48,9 @@ production service ports* to assert they stayed untouched.
 The gate writes machine-readable evidence to
 `qa-fixture/pre-reboot-gate/report.json`. A successful result is
 `PRE_REBOOT_GATE=PASS` **and** `PUBLIC_RELEASE_GATE=BLOCKED`.
-The Broker/Worker IPC fixture, Windows peer-SID negative test, and Windows
-Job Object child/grandchild lifecycle test bring the full local Gate to
-**12 checks**. A separate GitHub-hosted W1 proof demonstrated
+The Broker/Worker IPC fixture, Windows peer-SID negative test, Job Object
+child/grandchild lifecycle and bounded stream session tests bring the full
+local Gate to **13 checks**. A separate GitHub-hosted W1 proof demonstrated
 a real distinct LocalService SID and denied dummy credential access, but it does not
 unlock full remote command execution.
 If these appear together, it means non-reboot checks are complete — **not**

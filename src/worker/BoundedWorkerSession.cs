@@ -48,12 +48,17 @@ namespace MiceHole.SecurityExperiment
             stderrPump = Task.Run(() => Drain(value.StandardError.BaseStream, stderr));
             timeout = new Timer(_ =>
             {
-                if (!process.HasExited)
+                try
                 {
-                    Interlocked.Exchange(ref timedOut, 1);
-                    try { process.Kill(); } catch (InvalidOperationException) {}
-                    catch (Win32Exception) {}
+                    if (!process.HasExited)
+                    {
+                        Interlocked.Exchange(ref timedOut, 1);
+                        process.Kill();
+                    }
                 }
+                catch (ObjectDisposedException) {}
+                catch (InvalidOperationException) {}
+                catch (Win32Exception) {}
             }, null, limitMs, Timeout.Infinite);
         }
 

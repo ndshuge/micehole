@@ -112,6 +112,19 @@ or the user's other application credentials.
       automatic timeout enforcement, production permission/approval, dedicated
       Worker identity, IPC server authentication and full safe install/rollback.
       All current code is a fixture outside the public EXE/ZIP.
+- [x] **W2-B2 bounded output sessions in isolated Windows test:** a test-only
+      `src/worker/BoundedWorkerSession.cs` running inside a Job tracks process
+      start/status/wait/stop, keeps a per-stream bounded byte tail, and captures
+      stdout and stderr incrementally without waiting for process completion.
+      It reports truncation, exit codes, timeouts and cancellation.
+      A disposable LocalService Worker successfully ran the session fixture
+      after Broker kernel peer-SID authentication:
+      https://github.com/ndshuge/micehole/actions/runs/38026856062.
+      **Not production**: the session helper requires a supervising outer
+      Job and Stop kills the root only; descendants are removed by closing
+      that supervising Job, not by a per-session Job. Output is bounded but
+      session-by-session resource quotas, authenticated command request protocol,
+      dedicated identity/ACL and real Tunnel credential isolation remain missing.
 - [ ] **Production Worker proof**: turn that fixture into a signed/controlled
       Worker service, enforce named-pipe ACL and kernel peer-SID authentication,
       verify access denial to real per-user Tunnel secrets using a separate test

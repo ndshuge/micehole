@@ -81,7 +81,7 @@ jobs:
             ''
             ('- Commit: `' + $short + '`')
             ('- Workflow outcome: **' + $env:VERIFICATION_STATUS + '**')
-            '- Scope: local MCP, Windows path safety, worker IPC fixture, native peer SID negative test, portable ZIP, personal Tunnel offline setup, watchdog simulated recovery, publish preflight.'
+            '- Scope: local MCP, Windows path safety, worker IPC fixture, native peer SID negative test, Job Object containment and bounded streaming session fixtures, portable ZIP, personal Tunnel offline setup, watchdog simulated recovery, publish preflight.'
             '- Real distinct-SID disposable worker test is a separate workflow; passing this workflow is NOT production security approval.'
             '- Actual Windows reboot and separate-user ChatGPT pairing are NOT validated here.'
             ''

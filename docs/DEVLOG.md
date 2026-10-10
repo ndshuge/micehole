@@ -26,6 +26,30 @@ This repository is currently **Private** and its downloadable preview Release re
 
 ## Timeline
 
+### 2026-10-10 — W2-B2 bounded stdout/stderr and process session
+
+**Problem:** Earlier Worker experiments could launch or cancel fixed test
+processes but could not query live stdout/stderr, truncation, independent
+process state and timeouts as a reusable session unit.
+
+**Implementation:** Added test-only `BoundedWorkerSession` running strictly
+inside a Windows Job. It streams stdout/stderr concurrently into fixed-size
+byte tail buffers, provides start/status/output/wait/stop APIs, records nonzero
+exit and truncation metadata, and automatically terminates the root after
+a bounded runtime. No remote requests or real credentials are involved.
+The CI-only broker/worker test also runs this session under a real LocalService
+SID, after kernel-backed pipe client identity verification.
+
+**Evidence:** [1792539](https://github.com/ndshuge/micehole/commit/1792539) ·
+[GitHub separate-SID Worker CI PASS](https://github.com/ndshuge/micehole/actions/runs/38026856062) ·
+[Issue #3](https://github.com/ndshuge/micehole/issues/3).
+
+**Limits:** A session inherits a pre-existing outer Job Object; Stop itself
+kills the root only, not arbitrary descendants. Per-session Job isolation,
+output consumption cursors, persistent request framing, supported executable
+policy, install/uninstall provisioning and actual runtime credential isolation
+remain for production. Remote full shell remains locked.
+
 ### 2026-10-10 — W2-B Windows Job Object process lifecycle
 
 **Problem:** Terminating only the parent PowerShell process could leave an AI-invoked
