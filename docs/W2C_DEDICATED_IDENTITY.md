@@ -1,6 +1,6 @@
 # W2-C · Dedicated Windows Worker security experiment
 
-**Status: CI-only implementation. Dedicated account runtime test is pending successful GitHub Windows verification.**
+**Status: CI-only dedicated Windows account proof PASSED on a disposable GitHub runner ([evidence](https://github.com/ndshuge/micehole/actions/runs/38043795746)); not integrated into the installer.**
 
 ## The actual product boundary
 
@@ -44,6 +44,13 @@ newly provisioned account. The first CI Task Scheduler experiment returned
 last-result 267011 (task had never run). This account-identity experiment
 therefore explicitly uses an independent Windows logon API instead, and does
 not claim scheduled autostart compatibility.
+
+**Security regression caught by CI:** creating a dummy Broker credential file
+*before* setting restrictive directory permissions allowed the dedicated Worker
+to read it because of the pre-existing file ACL. The fix applies the directory
+ACL first, creates the key afterward, and explicitly protects the file DACL.
+The final Windows test requires a **real access-denied result** for the worker
+SID; simply inspecting an ACL is insufficient.
 
 ### Not proven / not in the installer
 

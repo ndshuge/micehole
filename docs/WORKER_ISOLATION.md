@@ -125,6 +125,18 @@ or the user's other application credentials.
       that supervising Job, not by a per-session Job. Output is bounded but
       session-by-session resource quotas, authenticated command request protocol,
       dedicated identity/ACL and real Tunnel credential isolation remain missing.
+- [x] **W2-C dedicated Windows account fixture**: disposable GitHub-hosted Windows
+      Runner created a unique non-admin local SID, launched a fixed Worker via
+      Windows' credential-protected logon API, authenticated its real pipe peer
+      SID, verified that the Worker **cannot read** a dummy Broker credential
+      and **can** write a scoped workspace, then tested the fixed child and
+      bounded session inside a Job. Cleanup deleted the temporary account.
+      CI: https://github.com/ndshuge/micehole/actions/runs/38043795746.
+      The initial negative test correctly detected a *real* ACL inheritance
+      bug when the secret file was created before locking its folder; corrected
+      by protecting both the folder and the file before declaring PASS.
+      This is not a Windows Installer integration. Scheduled Task startup
+      and a production-safe full remote execution protocol remain unverified.
 - [ ] **Production Worker proof**: turn that fixture into a signed/controlled
       Worker service, enforce named-pipe ACL and kernel peer-SID authentication,
       verify access denial to real per-user Tunnel secrets using a separate test

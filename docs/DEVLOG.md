@@ -15,7 +15,7 @@ For historical source details use commit history; for current acceptance status 
 | Windows installer/ZIP, bundled official Tunnel client | [Release acceptance](RELEASE.md) | CI and isolated install/uninstall passed |
 | Restricted personal Tunnel MCP | [07a49d2](https://github.com/ndshuge/micehole/commit/07a49d2) | **Only 5 remote file/status tools**, no shell |
 | Background supervisor | [b01b73a](https://github.com/ndshuge/micehole/commit/b01b73a) | Simulated crash/restart passed |
-| No-reboot safety gate | [Cloud and local gate](PRE_REBOOT_GATE.md) | 11 local checks passed |
+| No-reboot safety gate | [Cloud and local gate](PRE_REBOOT_GATE.md) | 13 local checks previously passed |
 | Independent Windows SID and dummy secret ACL | [GitHub Actions W1](https://github.com/ndshuge/micehole/actions/runs/38021364814) | Disposable CI proof passed |
 | Full production isolated Worker | [W2 IPC issue](https://github.com/ndshuge/micehole/issues/2) | **Not implemented** |
 | Independent user's own ChatGPT Tunnel pairing | [Beta issue](https://github.com/ndshuge/micehole/issues/5) | **Not verified** |
@@ -25,6 +25,37 @@ These statuses intentionally distinguish tested prototypes from a mature public 
 This repository is currently **Private** and its downloadable preview Release remains **Draft**.
 
 ## Timeline
+
+### 2026-10-10 — W2-C dedicated low-privilege Windows identity, CI-verified
+
+**Why:** LocalService proves two SIDs can be separated, but is a shared built-in
+principal. The intended downloadable product needs an isolated Worker identity
+without giving build scripts access to each person's personal Tunnel credentials.
+
+**Implementation:** Added a **manual-only disposable Windows GitHub Actions**
+workflow that creates a one-use, non-admin test Windows account, generates a
+random in-memory password, applies Broker/project NTFS ACLs, and logs the test
+Worker on using a credential-protected Windows process API. Broker authenticates
+the actual connected SID; a fixed child and bounded output session run under
+that SID. A `finally` rollback checks account and synthetic workspace cleanup.
+
+**Debugging and security findings:** The first GitHub run rejected an account
+description longer than Windows allows. A separate Scheduled Task launch remained
+`0x41303` (not yet run), so scheduled startup is **not** claimed. Direct
+separate-account logon proved the Worker could run, and immediately exposed a
+real credential-ACL mistake: a file created **before** protecting the directory
+retained permissive inherited rights. The test correctly failed; directory
+and file permissions were hardened and the negative access check then passed.
+
+**Evidence:** [W2-C CI passed](https://github.com/ndshuge/micehole/actions/runs/38043795746) ·
+[W2-C work item](https://github.com/ndshuge/micehole/issues/4) ·
+[dedicated-user QA contract](W2C_DEDICATED_IDENTITY.md).
+
+**Limits:** This is an ephemeral-account security **experiment**, not a packaged
+Windows Worker or a universal sandbox. It cannot justify exposing arbitrary
+remote commands. Real product provisioning, scheduled start/recovery, untrusted
+build-script isolation, broker authentication to Worker, IPC replay protection,
+user consent and lifecycle/uninstall are still unproven.
 
 ### 2026-10-10 — W2-B2 bounded stdout/stderr and process session
 

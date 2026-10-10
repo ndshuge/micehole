@@ -104,6 +104,7 @@ try {
       [Security.AccessControl.AccessControlType]::Allow)))
   }
   Set-Acl -LiteralPath $dummy -AclObject $fileAcl
+  if(-not(Test-Path -LiteralPath $dummy)){throw 'Broker dummy credential missing before test'}
 
   Add-Type -Path (Join-Path $repo 'src\worker\WindowsPipeAttestor.cs') -ErrorAction Stop
   if(-not [MiceHole.SecurityExperiment.WindowsPipeAttestor]::RejectSameUserClient()){
@@ -131,7 +132,11 @@ try {
   $state.worker_sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
   try{[void](Get-Content -LiteralPath '__DUMMY__' -Raw -ErrorAction Stop)}
   catch [System.UnauthorizedAccessException]{$state.broker_credential_denied=$true}
-  catch [System.IO.IOException]{$state.broker_credential_denied=$true}
+  catch [System.IO.IOException]{
+    # Reject missing-file / wrong-path false positives. 0x80070005 = Access Denied.
+    if($_.Exception.HResult -eq -2147024891){$state.broker_credential_denied=$true}
+    else{throw}
+  }
   $pipe=New-Object System.IO.Pipes.NamedPipeClientStream(
       '.', '__PIPE_NAME__',
       [System.IO.Pipes.PipeDirection]::InOut,[System.IO.Pipes.PipeOptions]::None,
@@ -269,6 +274,14 @@ finally {
   }
   if(Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue){$cleanupFailed=$true}
   if(Test-Path -LiteralPath $qa){Remove-Item -LiteralPath $qa -Recurse -Force -ErrorAction SilentlyContinue}
-  if($cleanupFailed){throw 'DEDICATED_WORKER_CI_CLEANUP_FAILED: residual disposable Windows account or task'}
+  if(Test-Path -LiteralPath $qa){$cleanupFailed=$true}
+  if($cleanupFailed){throw 'DEDICATED_WORKER_CI_CLEANUP_FAILED: residual account/task/test directory'}
+  if(Test-Path -LiteralPath $reportFile){
+    $report=Get-Content -LiteralPath $reportFile -Raw | ConvertFrom-Json
+    $report|Add-Member -MemberType NoteProperty -Name 'dedicated_account_removed_verified' -Value $true -Force
+    $report|Add-Member -MemberType NoteProperty -Name 'dedicated_test_task_absent_verified' -Value $true -Force
+    $report|Add-Member -MemberType NoteProperty -Name 'disposable_workspace_removed_verified' -Value $true -Force
+    $report|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $reportFile -Encoding UTF8
+  }
   Write-Output 'DEDICATED_WORKER_TEST_ACCOUNT_REMOVED=PASS'
 }
