@@ -32,12 +32,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-save-key.ps
 4. In the same directory, run:
 
 ~~~powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-doctor.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-doctor.ps1 -Deep
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-doctor.ps1 -ConfigurationOnly
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-doctor.ps1 -Deep -ConfigurationOnly
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-run.ps1
+# In another PowerShell window, once tunnel-client is running:
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-doctor.ps1
 ~~~
 
-Keep remote-run.ps1 open while using the Tunnel. The preliminary read-only Windows control panel can inspect state:
+Keep remote-run.ps1 open while using the Tunnel. A doctor check is only **connected/ready** when the Tunnel health endpoint responds; use -ConfigurationOnly before first start. The preliminary read-only Windows control panel can inspect state:
 
 ~~~powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\remote-control.ps1

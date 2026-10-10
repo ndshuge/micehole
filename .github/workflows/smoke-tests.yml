@@ -20,6 +20,16 @@ jobs:
           node-version: '24'
       - name: Run local isolated MCP tests
         run: node scripts/smoke-test.mjs
+      - name: Run isolated security regression tests
+        run: node scripts/security-test.mjs
       - name: Validate Personal Tunnel onboarding scripts
         shell: powershell
         run: .\scripts\check-remote-syntax.ps1
+      - name: Build portable distribution without Inno Setup
+        shell: powershell
+        run: .\scripts\build-release.ps1 -ZipOnly
+      - name: Test the ZIP with its bundled Node runtime
+        shell: powershell
+        run: .\scripts\verify-portable.ps1
+      - name: Scan tracked files for accidental secrets
+        run: node scripts/public-preflight.mjs

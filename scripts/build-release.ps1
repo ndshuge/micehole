@@ -1,4 +1,4 @@
-param([string]$Compiler="")
+param([string]$Compiler="",[switch]$ZipOnly)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $stage = Join-Path $root 'dist\stage'
@@ -14,8 +14,12 @@ Copy-Item (Join-Path $root 'scripts\micehole.cmd') (Join-Path $stage 'micehole.c
 # tunnel-client is not redistributed; each user selects an official binary during setup.
 Copy-Item (Join-Path $root 'docs\*.md') (Join-Path $stage 'docs')
 Copy-Item (Join-Path $root 'README.md') (Join-Path $stage 'README.md')
-$node = 'C:\Program Files\nodejs\node.exe'
+Copy-Item (Join-Path $root 'LICENSE') (Join-Path $stage 'LICENSE')
+$nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+$node = if($nodeCommand){$nodeCommand.Source}else{'C:\Program Files\nodejs\node.exe'}
 if(!(Test-Path -LiteralPath $node)){ throw "Node.js executable missing at $node" }
+$arch = & $node -p 'process.arch'
+if($arch.Trim() -ne 'x64'){throw 'Only Windows x64 bundled Node runtimes are supported by this installer.'}
 Copy-Item -LiteralPath $node -Destination (Join-Path $stage 'runtime\node.exe')
 $license = Join-Path $root 'installer\NODE-LICENSE.txt'
 if(!(Test-Path -LiteralPath $license)){ throw "Node license missing" }
@@ -24,7 +28,7 @@ $zip = Join-Path $dist 'MiceHole-Universal-0.1.0-Windows-x64.zip'
 if(Test-Path -LiteralPath $zip){Remove-Item -LiteralPath $zip -Force}
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal
 Write-Output "ZIP_BUILT=$zip"
-if(!$Compiler){
+if(!$Compiler -and !$ZipOnly){
   $candidates=@(
     (Join-Path $root 'build-tools\inno\ISCC.exe'),
     'C:\Program Files\Inno Setup 7\ISCC.exe',
@@ -32,10 +36,10 @@ if(!$Compiler){
   )
   $Compiler=$candidates | Where-Object {Test-Path -LiteralPath $_} | Select-Object -First 1
 }
-if($Compiler){
+if($Compiler -and !$ZipOnly){
   & $Compiler (Join-Path $root 'installer\micehole.iss')
   if($LASTEXITCODE -ne 0){throw "Inno compilation failed with $LASTEXITCODE"}
   Write-Output "INSTALLER_BUILT=$(Join-Path $dist 'installer\MiceHole-Universal-0.1.0-Setup.exe')"
-}else{Write-Warning 'No Inno compiler found. ZIP created; installer source ready.'}
+}else{Write-Warning 'Only ZIP was created (ZipOnly requested or no Inno compiler found).'}
 Get-ChildItem -Path $dist -Filter '*.zip' | ForEach-Object { Get-FileHash $_.FullName -Algorithm SHA256 | Format-List }
 Get-ChildItem -Path (Join-Path $dist 'installer') -Filter '*.exe' -ErrorAction SilentlyContinue | ForEach-Object { Get-FileHash $_.FullName -Algorithm SHA256 | Format-List }

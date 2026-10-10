@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [string]$StateRoot = (Join-Path $env:LOCALAPPDATA 'MiceHole\remote'),
-  [switch]$Deep
+  [switch]$Deep,
+  [switch]$ConfigurationOnly
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -9,6 +10,7 @@ $settings = Join-Path $StateRoot 'settings.json'
 $keyFile = Join-Path $StateRoot 'runtime-key.dpapi'
 $report = [ordered]@{
   ready = $false
+  configured = $false
   settings_present = Test-Path -LiteralPath $settings -PathType Leaf
   key_present = Test-Path -LiteralPath $keyFile -PathType Leaf
   client_present = $false
@@ -49,11 +51,14 @@ try {
       else{$env:CONTROL_PLANE_API_KEY = $previous}
     }
   }
-  $report.ready = $report.settings_present -and $report.key_present -and $report.client_present -and $report.profile_present -and $report.mcp_present -and (!$Deep -or $report.tunnel_doctor_exit -eq 0)
-  if($report.ready) { $report.message = 'Local remote setup is complete; check ChatGPT plugin availability separately.' }
-  else { $report.message = 'Remote setup is incomplete. Check missing fields and optionally run with -Deep.' }
+  $report.configured = $report.settings_present -and $report.key_present -and $report.client_present -and $report.profile_present -and $report.mcp_present -and (!$Deep -or $report.tunnel_doctor_exit -eq 0)
+  $report.ready = $report.configured -and $report.tunnel_health -eq 'ready'
+  if($report.ready) { $report.message = 'Personal Tunnel is ready. Check ChatGPT tool discovery separately.' }
+  elseif($report.configured) { $report.message = 'Setup configured; Tunnel not connected yet. Start remote-run.ps1 then repeat.' }
+  else { $report.message = 'Remote setup incomplete. Review missing fields or failed deep doctor.' }
 }catch{
   $report.message = $_.Exception.Message
 }
 [pscustomobject]$report | ConvertTo-Json -Compress
-if(-not $report.ready) { exit 1 }
+if($ConfigurationOnly) { if(-not $report.configured) { exit 1 } }
+elseif(-not $report.ready) { exit 1 }
