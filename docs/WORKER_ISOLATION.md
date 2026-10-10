@@ -98,8 +98,20 @@ or the user's other application credentials.
       An extended fixed (non-user-supplied) child process under the Worker SID
       passed with a six-second wait bound at
       https://github.com/ndshuge/micehole/actions/runs/38023712838.
-      **Do not** infer that child-process termination, arbitrary commands,
-      Broker server identity, or production isolation has been proven.
+      **Do not** infer that arbitrary commands, Broker server identity, or
+      production isolation has been proven.
+- [x] **W2-B test-only Job Object lifecycle:** `src/worker/WindowsJobRunner.cs`
+      calls `CreateProcessW` with `CREATE_SUSPENDED`, assigns the suspended
+      child to a Windows Job Object with `KILL_ON_JOB_CLOSE`, then resumes it.
+      Tests verify launch/wait, workspace-file output, explicit cancel/timeout,
+      and killing a live grandchild even after its parent exits. The same
+      suspended Job Object launcher ran a fixed `whoami /user` under LocalService
+      after Broker verified a real peer SID. Real Windows CI:
+      https://github.com/ndshuge/micehole/actions/runs/38024653744.
+      **Remaining:** true streaming stdout/stderr bounds, job/session quotas,
+      automatic timeout enforcement, production permission/approval, dedicated
+      Worker identity, IPC server authentication and full safe install/rollback.
+      All current code is a fixture outside the public EXE/ZIP.
 - [ ] **Production Worker proof**: turn that fixture into a signed/controlled
       Worker service, enforce named-pipe ACL and kernel peer-SID authentication,
       verify access denial to real per-user Tunnel secrets using a separate test

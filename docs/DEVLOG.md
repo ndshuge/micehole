@@ -26,6 +26,28 @@ This repository is currently **Private** and its downloadable preview Release re
 
 ## Timeline
 
+### 2026-10-10 — W2-B Windows Job Object process lifecycle
+
+**Problem:** Terminating only the parent PowerShell process could leave an AI-invoked
+program's child processes running. The earlier fixed Worker test verified identity,
+but did not prove process tree cleanup.
+
+**Implementation:** Added a test-only Windows Job Object runner. It starts a fixed
+executable **suspended**, assigns it to a Job with kill-on-close, then resumes it.
+Validated exit codes, bounded waits, explicit timeout cancellation and an actual
+nested child that outlived its parent but was killed when the Job was disposed.
+Integrated the same runner into the disposable LocalService Worker after real
+kernel-backed IPC identity verification; no new Windows account or reboot.
+
+**Evidence:** [97636b3](https://github.com/ndshuge/micehole/commit/97636b3)
+· [Windows worker CI PASS](https://github.com/ndshuge/micehole/actions/runs/38024653744)
+· [Issue #3](https://github.com/ndshuge/micehole/issues/3).
+
+**Limits:** Process results are tested through fixture workspace files, **not**
+production streaming output. LocalService is a shared service identity; this is not
+the finished per-app Windows Worker. No arbitrary ChatGPT-issued shell/Git/process
+tools have been exposed, and the installer does not ship this new test component.
+
 ### 2026-10-10 — W2-A kernel-authenticated IPC integration
 
 **Problem:** Fake-token IPC and a standalone Windows SID test did not yet prove that
