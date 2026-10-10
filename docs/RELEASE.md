@@ -4,6 +4,8 @@
 
 **Status:** PRIVATE / DRAFT only. Passing CI does not authorize public publication.
 
+**Product definition:** see [PRODUCT_SCOPE.md](PRODUCT_SCOPE.md). Each eligible user brings their own Windows PC, Secure MCP Tunnel and private ChatGPT MCP plugin; public directory listing is explicitly out of scope.
+
 ## Completed and reproducible
 
 - [x] MIT source license selected for the standalone Universal preview (upstream packages retain their licenses).
@@ -35,7 +37,7 @@
 
 - **Private preview now:** existing author installation + CI; not publicly usable.
 - **Self-hosted public beta (desired):** downloadable installer with personal Tunnel setup and reliable lifecycle, supported account matrix, verified new-user demo, documented security boundaries.
-- **Directory plugin later:** an independently hosted, authenticated public HTTPS MCP frontend would be needed for public plugin catalog submission. Secure MCP Tunnel itself is for self-hosted private connections.
+- **Public plugin directory is NOT a product goal:** each eligible user creates/installs their own private ChatGPT MCP connection over their own Secure MCP Tunnel. Do not build a shared hosted MCP backend or spend release resources on directory publication.
 
 ## Test commands
 

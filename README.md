@@ -2,7 +2,7 @@
 
 # MiceHole
 
-### 免费 Codex 式体验：用 ChatGPT 额度远程施工你的电脑
+### 用你自己的 ChatGPT + Tunnel，远程施工自己的 Windows 电脑
 
 **Your ChatGPT quota. Your own PC. Real coding from anywhere.**
 
@@ -27,7 +27,8 @@
 你的 ChatGPT 负责理解需求和生成方案，MiceHole 负责连接真实 Windows 工程：读写文件、启动项目、等待进程、检查测试结果。**不需要再为 MiceHole 单独配置一个付费编程模型 API。**
 
 > [!IMPORTANT]
-> **作者现有的 MiceHole 远程部署已可从 ChatGPT 操作本机；GitHub Universal Preview 安装包当前只包含本地 MCP 执行层，还没有给普通用户交付完整的远程接入和账号授权方案。**
+> **定位：下载 Windows EXE、自带官方 Tunnel 客户端、用户连接自己的 Secure MCP Tunnel，并在有权限的 ChatGPT 中创建自己的私有 MCP 插件；不需要申请上架公共插件目录。**
+> 作者现有部署能从 ChatGPT 远程操作本机。Universal Preview 已有个人 Tunnel 配置，但远程仍仅开放 5 个文件/状态工具；完整命令执行必须等 Worker 安全隔离验收后恢复。
 > 「免费 Codex」是产品愿景和体验类比：不需要购买 MiceHole 自己的模型 API。AI 客户端、套餐额度及自定义 MCP 写入权限仍有相应限制。MiceHole 不是 OpenAI Codex 官方产品。
 
 ## 🚀 你可以让 AI 做什么？
@@ -124,7 +125,7 @@ flowchart TB
 | 普通账号远程 ChatGPT 接入 | ⏳ 尚未实现 |
 | 与 Codex 同任务测评 | ⏳ 待测 |
 
-[查看完整测试与发布清单](docs/RELEASE.md)
+[产品目标与明确不做的事情](docs/PRODUCT_SCOPE.md) · [查看完整测试与发布清单](docs/RELEASE.md)
 
 ## 📚 更多文档
 

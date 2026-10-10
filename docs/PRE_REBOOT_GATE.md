@@ -1,6 +1,6 @@
 # MiceHole: pre-reboot acceptance gate (2026-10-10)
 
-This gate is for **self-hosted personal Tunnel remote coding on Windows**.
+This gate is for **self-hosted personal Tunnel remote coding on Windows**. There is no plan to publish a shared ChatGPT plugin in a public catalog.
 It is deliberately **not** a general-public release sign-off.
 
 ## Safe execution boundary
