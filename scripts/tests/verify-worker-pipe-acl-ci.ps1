@@ -118,7 +118,7 @@ finally {
   if(-not(Test-Path -LiteralPath $proof)){throw 'LocalService Worker produced no report'}
   $w=Get-Content -LiteralPath $proof -Raw | ConvertFrom-Json
   if(-not $result.Authorized -or $result.ObservedSid -ne $workerSid){throw 'Broker failed actual Windows peer-SID authentication'}
-  if(-not $result.WorkerAcknowledged){throw 'Worker did not acknowledge Broker approval'}
+  if(-not $result.WorkerAcknowledged){throw ('Worker did not acknowledge Broker approval; worker error: '+$w.error)}
   if($w.worker_sid -ne $workerSid){throw 'Task did not run as the expected Windows SID'}
   if(-not $w.broker_credential_denied){throw 'Worker accessed Broker dummy credential'}
   if(-not $w.pipe_authenticated -or -not $w.workspace_marker_written -or -not(Test-Path -LiteralPath $marker) -or -not $w.bounded_child_executed_as_worker){throw ('Worker did not perform fixed authorized child: '+$w.error)}
