@@ -33,8 +33,25 @@ try {
   checks.push("workspace traversal blocked for read/write/patch");
   await reject("mouse_hole_read",{path:".env"});
   await reject("mouse_hole_write",{path:".ssh\\id_rsa",content:"FAKE"});
+  await reject("mouse_hole_write",{path:".git\\hooks\\post-checkout",content:"FORBIDDEN"});
   await reject("mouse_hole_search",{path:".ssh",pattern:"secret"});
   checks.push("credential-like paths rejected");
+  if(process.platform === "win32"){
+    await reject("mouse_hole_read",{path:"ok.txt:hiddenstream"});
+    await reject("mouse_hole_write",{path:"CON",content:"X"});
+    await reject("mouse_hole_read",{path:".env."});
+    checks.push("Windows ADS/device names/ambiguous path suffix blocked");
+  }
+  const hardlink=path.join(workspace,"external-hardlink.txt");
+  try {
+    fs.linkSync(path.join(outside,"canary.txt"),hardlink);
+    await reject("mouse_hole_read",{path:"external-hardlink.txt"});
+    await reject("mouse_hole_write",{path:"external-hardlink.txt",content:"NO"});
+    checks.push("outside-file hardlinks denied");
+  }catch(error) {
+    if(!["EPERM","EACCES","ENOTSUP","EXDEV"].includes(error.code))throw error;
+    checks.push("hardlink test skipped (filesystem permission)");
+  }
   const allowed=await dispatch("mouse_hole_read",{path:"ok.txt"});assert.equal(allowed.content,"HELLO");
   checks.push("non-sensitive read continues to work");
   // On Windows, junctions should never allow traversal into an external directory.

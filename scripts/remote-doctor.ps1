@@ -36,7 +36,7 @@ try {
     if(-not $report.key_present) { throw 'Runtime API key not configured: run remote-save-key.ps1.' }
     $previous = [Environment]::GetEnvironmentVariable('CONTROL_PLANE_API_KEY','Process')
     try {
-      $secret = Get-Content -LiteralPath $keyFile -Raw | ConvertTo-SecureString
+      $secret = (Get-Content -LiteralPath $keyFile -Raw).Trim() | ConvertTo-SecureString
       $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
       try { $key = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
       finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }

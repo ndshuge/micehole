@@ -61,11 +61,12 @@ powershell -NoProfile -File .\scripts\remote-autostart.ps1 -Action Remove
 
 ## Test task
 
-> @MiceHole In my disposable test project, write a small static webpage, run suitable tests and report actual output. Do not read other directories or change Windows settings.
+> @MiceHole In my authorized disposable project, create and edit a small static webpage, then show me the changed files. Do not execute programs; command execution is currently locked in the remote safety preview.
 
 ## Current limits and safety
 
-- The public preview has 9 basic tools and a local stdio MCP engine. It does not include your owner's full custom Runtime + watchdog stack.
+- The Universal Preview has **9 local tools**, but its personal Tunnel deliberately exposes **only 5 restricted remote tools**: status, read, write, patch, search. Remote run / validate / process / Git command invocation is blocked at both protocol-discovery and execution layers until independent Windows credential/worker isolation is implemented. Do not promise remote build or shell execution in this safety preview.
+- This installer still does not contain the owner's original full MiceHole feature set.
 - Command execution is off by default and, if enabled, is **not a sandbox**. The AI may execute shell commands as your Windows account.
 - The launched MiceHole command clears the Tunnel API key environment variables before invoking the coding engine. This is **not sufficient credential isolation**. A process running as the same Windows user may still decrypt that user's DPAPI credential file. Do not put real secrets on an untrusted system.
 - **Opt-in background mode is now packaged as a preview:** the Control panel can install a per-user scheduled recovery task. The supervisor has passed an offline simulated crash/recovery test; real logon/sleep/proxy-change testing and credential isolation still remain before public release. Start with the foreground command for initial setup.

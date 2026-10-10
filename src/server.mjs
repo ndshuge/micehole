@@ -13,7 +13,9 @@ const tools=[
 ["mouse_hole_process","Run or inspect a persistent command",{operation:{type:"string",enum:["start","wait","status","output","stop"]},command:s,cwd:s,timeout_ms:n,process_id:n,wait_ms:n,offset:n},["operation"],false],
 ["mouse_hole_git","Read git status or diff statistics",{operation:{type:"string",enum:["status","diff"]},cwd:s},["operation"],true],
 ["mouse_hole_validate","Run project validation and return exit status",{command:s,cwd:s,timeout_ms:n},["command"],false]
-].map(([name,description,props,required,readOnlyHint])=>({name,description,inputSchema:shape(props,required),annotations:{readOnlyHint,destructiveHint:!readOnlyHint,openWorldHint:false}}));
+].map(([name,description,props,required,readOnlyHint])=>({name,description,inputSchema:shape(props,required),annotations:{readOnlyHint,destructiveHint:!readOnlyHint,openWorldHint:false}}))
+ .filter(tool => process.env.MICEHOLE_REMOTE_SESSION !== "1" ||
+   ["mouse_hole_status","mouse_hole_read","mouse_hole_write","mouse_hole_patch","mouse_hole_search"].includes(tool.name));
 function result(id,value){return {jsonrpc:"2.0",id,result:value};}
 function rpcError(id,code,message){return {jsonrpc:"2.0",id,error:{code,message}};}
 async function handle(m){

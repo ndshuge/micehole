@@ -10,7 +10,7 @@ MiceHole is a Windows local execution layer for AI/MCP clients. Rather than only
 
 ## Current availability
 
-**Tested today:** standalone Windows x64 local stdio MCP server, with nine general-purpose tools (status, read, write, patch, search, run, process, git, validate).
+**Tested today:** standalone Windows x64 local stdio MCP server with nine general-purpose tools (status, read, write, patch, search, run, process, git, validate). **Personal Tunnel currently allows only five file/status tools**; remote command execution, Git processes and test runs are locked until the Tunnel credential and coding worker use separate Windows security identities.
 
 **The owner's existing remote MiceHole deployment has demonstrated ChatGPT-to-Windows execution, including use from a phone.** The separate GitHub Universal installer does not yet deliver this remote onboarding for new customers, and full write access for ChatGPT accounts is subject to current official limitations. ChatGPT full custom MCP write support has its own plan/client restrictions. The ZIP and installer now include the official, hash-verified OpenAI tunnel-client and a personal Tunnel setup script. Independent new-user remote onboarding and credential security hardening have **not** passed release review.
 

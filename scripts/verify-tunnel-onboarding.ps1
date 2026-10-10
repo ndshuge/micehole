@@ -15,7 +15,7 @@ try{
   if($profile -notmatch [regex]::Escape($mock)){throw 'Generated profile does not select user Tunnel ID'}
   if($profile -notmatch 'api_key:.*env:CONTROL_PLANE_API_KEY'){throw 'Tunnel must use environment key reference, not plaintext YAML'}
   if($settings.tunnel_client -ne (Join-Path $installed 'tunnel-client\tunnel-client.exe')){throw 'Generated settings do not use bundled official client'}
-  if(-not($profile.Contains('micehole.cmd'))){throw 'Personal profile does not call installed MCP server'}
+  if(-not($profile.Contains('micehole-remote.cmd'))){throw 'Personal profile does not call installed MCP server'}
   if(Test-Path -LiteralPath (Join-Path $temp 'runtime-key.dpapi')){throw 'SkipCredential must not create a secret'}
   Write-Output 'PERSONAL_TUNNEL_OFFLINE_ONBOARDING=PASS'
 }finally{

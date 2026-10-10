@@ -36,6 +36,8 @@ jobs:
       - name: Test the ZIP with its bundled Node runtime
         shell: powershell
         run: .\scripts\verify-portable.ps1
+      - name: Test remote safe mode (no shared-key shell privilege)
+        run: node scripts/remote-safe-test.mjs dist/stage
       - name: Verify installation and uninstall safety contract
         shell: powershell
         run: .\scripts\verify-installer-contract.ps1

@@ -8,7 +8,8 @@
 
 - [x] MIT source license selected for the standalone Universal preview (upstream packages retain their licenses).
 - [x] Windows MCP handshake, nine tool schemas, text read/write/patch/search, Git, run, validate, process wait.
-- [x] Automated negative tests for default-disabled shell, escaping workspace, credential-looking paths and Windows junctions.
+- [x] Automated negative tests for default-disabled shell, escaping workspace, credential-looking paths, Windows junctions, NTFS hardlinks, alternate streams and special device names.
+- [x] Protected personal-Tunnel entry point advertises only five file/status tools and refuses run/validate/process/git even when local execution is enabled; test verified on packaged Windows runtime.
 - [x] Portable ZIP unpack-and-run test using bundled Node, including ensuring mock control-plane key variables are removed from MCP command shells.
 - [x] Script syntax test and official tunnel-client init profile generation tested with a fake tunnel ID in an isolated local directory.
 - [x] Official tunnel-client v0.0.15 Windows x64 archive pinned to SHA256 3B53133A1E24D43F63088D843860CB1701A4C3ED6390DE2E19F69089E43BDDC1, with its LICENSE and NOTICE included in the distribution.
@@ -19,7 +20,7 @@
 
 ## Blocking before public release
 
-- [ ] **Security:** resolve or explicitly redesign the same-user DPAPI key boundary for untrusted AI command execution. Same-user shell can access files beyond the workspace; it is not sandboxed. External review required.
+- [ ] **Security:** personal Tunnel is now a limited file-editing preview with remote shell permanently locked. For the full Codex-like remote build/run workflow, resolve same-user DPAPI key access by separating execution from Tunnel credentials with a distinct Windows security principal or reviewed broker; independent audit required.
 - [ ] **Installation:** clean Windows user/VM Setup.exe install, upgrade, uninstall, no global Node dependency, no unexpected services/tasks, user settings preserved.
 - [ ] **Remote pairing:** complete private-Tunnel runtime with a real separate test account. Validate tunnel association with the correct Platform organization and ChatGPT workspace, discovery, writable MCP tools and revocation.
 - [ ] **Supported accounts:** document exactly which ChatGPT plans and web/mobile versions can create and call write-capable private MCP plugins. Do not equate an author's granted connection with universal eligibility.

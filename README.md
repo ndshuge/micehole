@@ -78,6 +78,8 @@ flowchart TB
 
 **自托管远程接入预览已经开始提供：** 用户准备自己的 OpenAI Secure MCP Tunnel 与运行凭据后，安装包内置的**官方 tunnel-client** 会生成本机连接配置，让兼容的 ChatGPT 插件调用本机 MCP 工具。
 
+**安全预览限制：远程目前只开放状态、读取、写入、补丁和搜索这 5 个工具。** 终端、测试执行、Git 命令和长进程暂时仅限本机；等 Tunnel 凭据与 AI 代码执行完成 Windows 身份隔离后再开放。
+
 - **[自托管个人 Tunnel 安装指南](docs/SELF-HOSTED.md)**：内置官方客户端、个人 Tunnel 初始化、凭据保存、连接检查、在 ChatGPT 添加插件。
 - **[ChatGPT 端使用指南](docs/CHATGPT-QUICKSTART.md)**：如何选择插件以及给出真正执行任务的指令。
 - **MiceHole Control** 现可查看状态并由用户主动开启、停止、移除后台 Supervisor。模拟 Tunnel 崩溃→重启→恢复已通过测试，但全新 Windows 账户的开机自启、卸载及网络断线验收仍在进行。

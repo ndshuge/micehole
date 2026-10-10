@@ -5,8 +5,9 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
 const DEFAULT_CONFIG = path.join(os.homedir(), "AppData", "Local", "MiceHole", "config.json");
-const DENY_PARTS = /^(?:\.env(?:\..*)?|\.ssh|\.aws|\.azure|\.gnupg|secrets?|credentials?|id_rsa|id_ed25519|authorized_keys|token(?:s)?|private[-_]?keys?)$/i;
+const DENY_PARTS = /^(?:\.env(?:\..*)?|\.git|\.ssh|\.aws|\.azure|\.gnupg|secrets?|credentials?|id_rsa|id_ed25519|authorized_keys|token(?:s)?|private[-_]?keys?)$/i;
 const SKIP = new Set(["node_modules", ".git", ".venv", "venv", "__pycache__", "dist", "build"]);
+const RESERVED_WIN32 = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
 const MAX_TEXT = 1024 * 1024;
 const MAX_REPLY = 18000;
 const jobs = new Map();
@@ -23,7 +24,16 @@ export function loadConfig() {
   if (!cfg.workspace || typeof cfg.workspace !== "string") fail("Set workspace in config.json");
   const root = fs.realpathSync.native(path.resolve(cfg.workspace));
   if (!fs.statSync(root).isDirectory()) fail("Configured workspace is not a directory");
-  return { root, executionEnabled:cfg.executionEnabled === true, configPath };
+  const remoteSession = process.env.MICEHOLE_REMOTE_SESSION === "1";
+  if (remoteSession) {
+    // A broad workspace could expose the per-user Tunnel key/config via file tools.
+    // Restrict it before any remote tool call is accepted. This is not an OS sandbox.
+    const sensitiveRoot = path.resolve(path.join(os.homedir(), "AppData", "Local", "MiceHole"));
+    if (contained(root, sensitiveRoot) || contained(root, path.dirname(configPath))) {
+      fail("Remote workspace overlaps MiceHole configuration/credentials; choose a narrower dedicated project directory.");
+    }
+  }
+  return { root, executionEnabled: cfg.executionEnabled === true && !remoteSession, remoteSession, configPath };
 }
 function contained(root, candidate) {
   const rel = path.relative(root, candidate);
@@ -36,6 +46,10 @@ function safePath(cfg, input, mayCreate = false) {
   const rel = path.relative(cfg.root, full);
   const pieces = rel ? rel.split(path.sep) : [];
   if (pieces.some(x => DENY_PARTS.test(x))) fail("Credential-like path blocked");
+  if (process.platform === "win32" &&
+      pieces.some(x => /[:]/.test(x) || /[. ]$/.test(x) || RESERVED_WIN32.test(x))) {
+    fail("Unsafe Windows path (alternate stream, device name or ambiguous suffix) blocked");
+  }
   let cursor = cfg.root;
   for (const part of pieces) {
     cursor = path.join(cursor, part);
@@ -43,6 +57,9 @@ function safePath(cfg, input, mayCreate = false) {
   }
   if (!mayCreate && !fs.existsSync(full)) fail("Path not found: " + rel);
   if (fs.existsSync(full)) {
+    const st = fs.statSync(full);
+    // Hardlinks can point to the same outside-workspace file without appearing as symlinks.
+    if (st.isFile() && st.nlink > 1) fail("Hard-linked files are not allowed");
     const real = fs.realpathSync.native(full);
     if (!contained(cfg.root, real)) fail("Resolved path outside workspace");
   }
@@ -50,6 +67,7 @@ function safePath(cfg, input, mayCreate = false) {
 }
 function relative(cfg, file) { return path.relative(cfg.root, file).split(path.sep).join("/"); }
 function executeAllowed(cfg) {
+  if (cfg.remoteSession) fail("Remote shell execution locked until worker/Tunnel credentials have separate Windows security identities.");
   if (!cfg.executionEnabled) fail("Shell execution disabled. Explicitly set executionEnabled=true in MiceHole config after reviewing SECURITY.md");
 }
 function safeCommand(cmd) {
@@ -129,7 +147,7 @@ function writeAtomic(file,content){
 }
 export async function dispatch(name,args={}){
   const cfg=loadConfig();
-  if(name==="mouse_hole_status") return reply("status",{ready:true,edition:"Universal Preview",version:"0.1.0",workspace:cfg.root,execution_enabled:cfg.executionEnabled,tools:9});
+  if(name==="mouse_hole_status") return reply("status",{ready:true,edition:"Universal Preview",version:"0.1.0",workspace:cfg.root,execution_enabled:cfg.executionEnabled,remote_session:cfg.remoteSession,tools:cfg.remoteSession?5:9});
   if(name==="mouse_hole_read"){
     const file=safePath(cfg,args.path);
     if(!fs.statSync(file).isFile())fail("Not a file");
@@ -160,6 +178,7 @@ export async function dispatch(name,args={}){
     return {ok:data.exit_code===0,operation:name.endsWith("validate")?"validate":"run",...data};
   }
   if(name==="mouse_hole_git"){
+    if(cfg.remoteSession) fail("Git invocation is disabled in protected remote mode until credential isolation is implemented.");
     const cwd=safePath(cfg,args.cwd||".");
     const a=args.operation==="diff"?["-C",cwd,"diff","--stat"]:["-C",cwd,"status","--short"];
     const data=await new Promise(resolve=>{

@@ -9,7 +9,8 @@ MiceHole is a local command executor, **not a secure sandbox**. It gives an auth
 - The initial Windows config has \`executionEnabled=false\`. Read/write operations are still possible only within the configured workspace.
 - File read/write/patch/search reject traversal outside the workspace, typical credential paths (such as .env, .ssh), and known symlink/junction traversal.
 - Tunnel profile and runtime key live outside the repository. The runtime key is entered in a hidden prompt and stored encrypted using Windows DPAPI CurrentUser.
-- The packaged MCP launcher clears \`CONTROL_PLANE_API_KEY\`, \`MOUSE_HOLE_CONTROL_PLANE_API_KEY\` and \`OPENAI_API_KEY\` from the environment before launching Node and any child shell.
+- The packaged MCP launcher clears Tunnel/model API keys from the environment before launching Node. **The private-Tunnel launcher is now a separate remote-safe entry point:** only five file/status tools are exposed, and shell, validation, process and Git subprocess execution is blocked even if the local configuration enables command execution.
+- Windows file operations reject tested hardlink aliases, junctions, alternate data streams, reserved device names, and ambiguous trailing-dot/space paths. These checks remain defense in depth, not a substitute for OS identity isolation.
 - Tunnel health listens on loopback. The package does not open inbound public ports, install unattended autorun or request administrator privileges by default.
 
 ## Important limitations and remaining launch blockers
@@ -32,4 +33,4 @@ MiceHole is a local command executor, **not a secure sandbox**. It gives an auth
 
 Until public release, report suspected vulnerabilities privately to the repository maintainer. **Never** open a public issue containing API keys, remote profiles, user data or exploit code targeting someone else's system.
 
-MiceHole is independent of OpenAI and is not official Codex. Its source is MIT-licensed; bundled Node.js remains under its own license. The OpenAI tunnel-client is distributed separately under its Apache-2.0 license.
+MiceHole is independent of OpenAI and is not official Codex. Its source is MIT-licensed; bundled Node.js remains under its own license. The bundled official OpenAI tunnel-client retains its Apache-2.0 license and NOTICE files.

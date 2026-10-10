@@ -17,7 +17,7 @@ if($ProfileName -notmatch '^[a-zA-Z0-9_-]{1,64}$') { throw 'Invalid profile name
 if($HealthPort -lt 1024 -or $HealthPort -gt 65535) { throw 'HealthPort must be between 1024 and 65535' }
 $client = (Resolve-Path -LiteralPath $TunnelClient -ErrorAction Stop).ProviderPath
 if([IO.Path]::GetFileName($client).ToLowerInvariant() -ne 'tunnel-client.exe') { throw 'Select the official tunnel-client.exe executable' }
-$runner = Join-Path $InstallRoot 'micehole.cmd'
+$runner = Join-Path $InstallRoot 'micehole-remote.cmd'
 if(-not (Test-Path -LiteralPath $runner -PathType Leaf)) { throw "MiceHole local MCP entry point missing: $runner" }
 $profiles = Join-Path $StateRoot 'profiles'
 $profilePath = Join-Path $profiles ($ProfileName + '.yaml')

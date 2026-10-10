@@ -15,7 +15,7 @@ try {$acquired=$mutex.WaitOne(0,$false)} catch [Threading.AbandonedMutexExceptio
 if(-not $acquired){$mutex.Dispose(); Write-Output 'ALREADY_RUNNING'; exit 0}
 $previous=[Environment]::GetEnvironmentVariable('CONTROL_PLANE_API_KEY','Process')
 try {
-  $secret=Get-Content -LiteralPath $keyFile -Raw | ConvertTo-SecureString
+  $secret=(Get-Content -LiteralPath $keyFile -Raw).Trim() | ConvertTo-SecureString
   $bstr=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
   try {$key=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)}
   finally {[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)}
