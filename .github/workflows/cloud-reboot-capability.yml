@@ -1,0 +1,24 @@
+name: Cloud reboot capability probe (no VM creation)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-capabilities:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect nested Windows guest virtualization (read-only)
+        shell: powershell
+        run: .\scripts\cloud\probe-nested-virtualization.ps1
+      - name: Upload probe evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-nested-windows-capability
+          path: qa-fixture/github-nested-capability.json
+          if-no-files-found: error
+          retention-days: 7
