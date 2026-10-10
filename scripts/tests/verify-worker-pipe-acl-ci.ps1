@@ -60,9 +60,14 @@ try {
   # the separate LocalService Worker. Never inject owner secrets into the assembly.
   $jobDll=Join-Path $workspace 'MiceHole-W2B-JobRunner.dll'
   Add-Type -Path (Join-Path $repo 'src\worker\WindowsJobRunner.cs') -OutputAssembly $jobDll -ErrorAction Stop
+  $sessionDll=Join-Path $workspace 'MiceHole-W2B2-Session.dll'
+  Add-Type -Path (Join-Path $repo 'src\worker\BoundedWorkerSession.cs') -OutputAssembly $sessionDll -ErrorAction Stop
+  $sessionHost=Join-Path $workspace 'worker-session-host.ps1'
+  Copy-Item -LiteralPath (Join-Path $repo 'scripts\tests\worker-session-host.ps1') -Destination $sessionHost
+  $sessionReport=Join-Path $workspace 'session-worker-proof.json'
   $source=@'
 $ErrorActionPreference='Stop'
-$state=[ordered]@{worker_sid='';broker_credential_denied=$false;pipe_authenticated=$false;workspace_marker_written=$false;bounded_child_executed_as_worker=$false;error=''}
+$state=[ordered]@{worker_sid='';broker_credential_denied=$false;pipe_authenticated=$false;workspace_marker_written=$false;bounded_child_executed_as_worker=$false;bounded_session_under_worker_sid=$false;error=''}
 $pipe=$null
 try {
   $state.worker_sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
@@ -94,6 +99,18 @@ try {
       $state.bounded_child_executed_as_worker=$true
     }finally{$job.Dispose()}
     $pipe.WriteByte(35);$pipe.Flush()
+    # A second, fixed child host inherits its own Job and verifies stream/status
+    # sessions while still running as the separate low-privilege LocalService SID.
+    $shell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $sessionArgs='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "__SESSION_HOST__" -Assembly "__SESSION_DLL__" -Workspace "__WORKSPACE__" -Report "__SESSION_REPORT__"'
+    $sessionJob=[MiceHole.SecurityExperiment.WindowsJobRunner]::StartFixed($shell,$sessionArgs,'__WORKSPACE__')
+    try{
+      if(-not $sessionJob.Wait(45000)){$sessionJob.Cancel();throw 'Worker stream fixture timed out'}
+      if($sessionJob.ExitCode -ne 0){throw ('Worker stream fixture nonzero exit '+$sessionJob.ExitCode)}
+      $sessionResult=Get-Content -LiteralPath '__SESSION_REPORT__' -Raw -ErrorAction Stop | ConvertFrom-Json
+      if(-not $sessionResult.ok){throw ('Worker session failed '+$sessionResult.error)}
+      $state.bounded_session_under_worker_sid=$true
+    }finally{$sessionJob.Dispose()}
   }else{$state.error='Broker rejected Worker or wrong execution identity'}
 }catch{$state.error=$_.Exception.GetType().Name+': '+$_.Exception.Message}
 finally {
@@ -106,6 +123,9 @@ finally {
   $source=$source.Replace('__PROOF__',$proof.Replace("'","''"))
   $source=$source.Replace('__PIPE_NAME__',$pipeName)
   $source=$source.Replace('__JOB_DLL__',$jobDll.Replace("'","''"))
+  $source=$source.Replace('__SESSION_HOST__',$sessionHost.Replace("'","''"))
+  $source=$source.Replace('__SESSION_DLL__',$sessionDll.Replace("'","''"))
+  $source=$source.Replace('__SESSION_REPORT__',$sessionReport.Replace("'","''"))
   $source=$source.Replace('__WORKSPACE__',$workspace.Replace("'","''"))
   $source=$source.Replace('__COMMAND_OUTPUT__',(Join-Path $workspace 'worker-whoami-output.txt').Replace("'","''"))
   Set-Content -LiteralPath $workerScript -Value $source -Encoding UTF8
@@ -122,14 +142,14 @@ finally {
     $result=[MiceHole.SecurityExperiment.WindowsPipeAttestor]::AuthorizeOnce($server,$workerSid,13000)
   } finally { $server.Dispose() }
 
-  for($i=0;$i -lt 30 -and -not(Test-Path -LiteralPath $proof);$i++){Start-Sleep -Milliseconds 350}
+  for($i=0;$i -lt 125 -and -not(Test-Path -LiteralPath $proof);$i++){Start-Sleep -Milliseconds 400}
   if(-not(Test-Path -LiteralPath $proof)){throw 'LocalService Worker produced no report'}
   $w=Get-Content -LiteralPath $proof -Raw | ConvertFrom-Json
   if(-not $result.Authorized -or $result.ObservedSid -ne $workerSid){throw 'Broker failed actual Windows peer-SID authentication'}
   if(-not $result.WorkerAcknowledged){throw ('Worker did not acknowledge Broker approval; worker error: '+$w.error)}
   if($w.worker_sid -ne $workerSid){throw 'Task did not run as the expected Windows SID'}
   if(-not $w.broker_credential_denied){throw 'Worker accessed Broker dummy credential'}
-  if(-not $w.pipe_authenticated -or -not $w.workspace_marker_written -or -not(Test-Path -LiteralPath $marker) -or -not $w.bounded_child_executed_as_worker){throw ('Worker did not perform fixed authorized child: '+$w.error)}
+  if(-not $w.pipe_authenticated -or -not $w.workspace_marker_written -or -not(Test-Path -LiteralPath $marker) -or -not $w.bounded_child_executed_as_worker -or -not $w.bounded_session_under_worker_sid){throw ('Worker did not complete low-privilege session: '+$w.error)}
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $reportFile) | Out-Null
   [ordered]@{
     ok=$true;broker_and_worker_sids_distinct=$true
@@ -140,6 +160,7 @@ finally {
     bounded_workspace_action_completed=$true
     fixed_child_executed_as_worker_sid=$true
     fixed_child_suspended_then_job_assigned_before_resume=$true
+    output_session_verified_under_low_privilege_sid=$true
     no_real_tunnel_or_owner_pc_mutated=$true
     production_worker_security_verified=$false
     caveat='CI-only LocalService is shared with other services; no production peer hardening, replay protection, job objects or command sandbox proven.'
@@ -148,6 +169,7 @@ finally {
   Write-Output 'LOW_PRIVILEGE_WORKSPACE_ACTION=PASS'
   Write-Output 'FIXED_BOUNDED_CHILD_EXECUTION_UNDER_WORKER_SID=PASS'
   Write-Output 'WORKER_JOB_OBJECT_SUSPENDED_LAUNCH=PASS'
+  Write-Output 'WORKER_BOUNDED_OUTPUT_SESSION_UNDER_LOCAL_SERVICE=PASS'
   Write-Output 'BROKER_DUMMY_CREDENTIAL_ACL=PASS'
   Write-Output 'REMOTE_SHELL_STILL_LOCKED=PASS'
 } finally {

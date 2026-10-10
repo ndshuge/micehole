@@ -56,6 +56,7 @@ try{
   $ok=(Step 'WORKER_IPC_FIXTURE' $node 'scripts\tests\worker-ipc.test.mjs') -and $ok
   $ok=(Step 'WINDOWS_PEER_SID_NEGATIVE' $ps '-NoProfile -ExecutionPolicy Bypass -File scripts\tests\verify-windows-pipe-peer.ps1') -and $ok
   $ok=(Step 'WORKER_JOB_OBJECT' $ps '-NoProfile -ExecutionPolicy Bypass -File scripts\tests\verify-worker-job-ci.ps1') -and $ok
+  $ok=(Step 'WORKER_SESSION_STREAMING' $ps '-NoProfile -ExecutionPolicy Bypass -File scripts\tests\verify-worker-session-ci.ps1') -and $ok
   $ok=(Step 'SCRIPT_SYNTAX' $ps '-NoProfile -ExecutionPolicy Bypass -File scripts\check-remote-syntax.ps1') -and $ok
   $ok=(Step 'PERSONAL_TUNNEL_OFFLINE' $ps '-NoProfile -ExecutionPolicy Bypass -File scripts\verify-tunnel-onboarding.ps1') -and $ok
   $ok=(Step 'INSTALLER_CONTRACT' $ps '-NoProfile -ExecutionPolicy Bypass -File scripts\verify-installer-contract.ps1') -and $ok

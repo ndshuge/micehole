@@ -15,6 +15,9 @@ jobs:
       - name: Verify Windows Job Object process tree containment
         shell: powershell
         run: .\scripts\tests\verify-worker-job-ci.ps1
+      - name: Verify bounded Worker session in an assigned Windows Job
+        shell: powershell
+        run: .\scripts\tests\verify-worker-session-ci.ps1
       - name: Verify actual separate Windows LocalService SID and protected dummy credential
         shell: powershell
         run: .\scripts\tests\verify-worker-service-identity-ci.ps1

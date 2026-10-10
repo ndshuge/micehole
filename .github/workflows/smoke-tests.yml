@@ -36,6 +36,9 @@ jobs:
       - name: Verify Windows Job Object process wait, timeout and descendant cleanup
         shell: powershell
         run: .\scripts\tests\verify-worker-job-ci.ps1
+      - name: Test bounded Worker sessions (incremental outputs, status, wait, stop)
+        shell: powershell
+        run: .\scripts\tests\verify-worker-session-ci.ps1
       - name: Validate Personal Tunnel onboarding scripts
         shell: powershell
         run: .\scripts\check-remote-syntax.ps1
