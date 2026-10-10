@@ -1,6 +1,6 @@
 # W2-C · Dedicated Windows Worker security experiment
 
-**Status: CI-only implementation; real disposable Windows account test not yet verified.**
+**Status: CI-only implementation. Dedicated account runtime test is pending successful GitHub Windows verification.**
 
 ## The actual product boundary
 
@@ -33,14 +33,21 @@ Windows runner**, never on the owner's PC.
    client SID. Reject same-user imitation.
 5. Under that dedicated SID, run only a **fixed test** `whoami /user`,
    using the existing suspended-creation Windows Job Object runner.
-6. Within a Job, verify bounded stdout/stderr, status, exit codes, timeout
-   and cancellation through the previously tested fixture.
-7. Stop/unregister the disposable Task Scheduler entry, delete the account,
-   check neither remains, delete temporary workspace and release password.
+6. Launch the Worker using Windows CreateProcessWithLogonW under the generated
+   account (not a password in a CLI argument), and test bounded stdout/stderr,
+   status, exit codes, timeout and cancellation inside a Job.
+7. Terminate the test Worker, delete the disposable account, verify it no
+   longer exists, and remove temporary workspace and credentials.
+
+**Separate pending test:** actual Task Scheduler startup/recovery under a
+newly provisioned account. The first CI Task Scheduler experiment returned
+last-result 267011 (task had never run). This account-identity experiment
+therefore explicitly uses an independent Windows logon API instead, and does
+not claim scheduled autostart compatibility.
 
 ### Not proven / not in the installer
 
-- No production install, user consent wizard or rollback/upgrade path.
+- No production install, user consent wizard, scheduled startup, or rollback/upgrade path.
 - A standard local account is not a complete sandbox: Windows group rights,
   network and named-pipe access, alternate tokens and executable/ACL privilege
   escalation still need a dedicated threat-model audit.

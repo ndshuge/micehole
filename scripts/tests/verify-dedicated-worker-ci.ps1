@@ -24,6 +24,8 @@ $workerSid=$null
 $brokerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $taskRegistered=$false
 $createdUser=$false
+$workerProcess=$null
+$secureLogon=$null
 $plainPassword=$null
 $reportFile=Join-Path $repo 'qa-fixture\dedicated-worker-ci-proof.json'
 function RestrictDirectory([string]$target,[bool]$workerWrite) {
@@ -175,33 +177,25 @@ finally {
   $source=$source.Replace('__COMMAND_OUTPUT__',(Join-Path $workspace 'worker-whoami-output.txt').Replace("'","''"))
   Set-Content -LiteralPath $workerScript -Value $source -Encoding UTF8
 
-  $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$workerScript+'"')
-  $trigger=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(5)
-  $settings=New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Minutes 2)
-  # TaskScheduler uses supplied username/password in a protected API, NOT a CLI.
-  # The ephemeral account credential is never persisted in repo files or logs.
-  Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Trigger $trigger -User $localUser -Password $plainPassword -RunLevel Limited -Settings $settings -ErrorAction Stop|Out-Null
-  $taskRegistered=$true
-  $plainPassword=$null
+  # A clean secondary Windows logon in disposable CI. Windows manages the
+  # credential via CreateProcessWithLogonW; the password is never an argument.
+  # Task Scheduler start-on-login remains a SEPARATE, unverified release gate.
+  $secureLogon=ConvertTo-SecureString -String $plainPassword -AsPlainText -Force
+  $info=New-Object System.Diagnostics.ProcessStartInfo
+  $info.FileName=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+  $info.Arguments='-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$workerScript+'"'
+  $info.UserName=$userName
+  $info.Domain=$env:COMPUTERNAME
+  $info.Password=$secureLogon
+  $info.UseShellExecute=$false
+  $info.CreateNoWindow=$true
+  $info.WorkingDirectory=$workspace
   $server=[MiceHole.SecurityExperiment.WindowsPipeAttestor]::Create($pipeName,$brokerSid,$workerSid)
   try {
-    Start-ScheduledTask -TaskName $taskName -TaskPath $taskPath
-    try {
-      $result=[MiceHole.SecurityExperiment.WindowsPipeAttestor]::AuthorizeOnce($server,$workerSid,13000)
-    } catch {
-      $taskState='unknown';$taskResult='unknown'
-      try{
-        $taskState=[string](Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction Stop).State
-        $taskResult=[string](Get-ScheduledTaskInfo -TaskName $taskName -TaskPath $taskPath -ErrorAction Stop).LastTaskResult
-      }catch{}
-      $workerError='none'
-      if(Test-Path -LiteralPath $proof){
-        try {$workerError=[string]((Get-Content -LiteralPath $proof -Raw|ConvertFrom-Json).error)}catch{}
-      }
-      throw ('Dedicated Worker failed to connect; scheduler_state='+$taskState+
-        '; last_result='+$taskResult+'; worker_error_type='+$workerError+
-        '; failure='+$_.Exception.GetType().Name)
-    }
+    $workerProcess=[System.Diagnostics.Process]::Start($info)
+    $plainPassword=$null
+    $secureLogon.Dispose()
+    $result=[MiceHole.SecurityExperiment.WindowsPipeAttestor]::AuthorizeOnce($server,$workerSid,15000)
   } finally { $server.Dispose() }
 
   for($i=0;$i -lt 150 -and -not(Test-Path -LiteralPath $proof);$i++){Start-Sleep -Milliseconds 400}
@@ -224,6 +218,8 @@ finally {
     fixed_child_suspended_then_job_assigned_before_resume=$true
     output_session_verified_under_low_privilege_sid=$true
     dedicated_non_admin_windows_user=$true
+    dedicated_user_logon_via_create_process_with_logon=$true
+    scheduled_task_autostart_verified=$false
     no_real_tunnel_or_owner_pc_mutated=$true
     production_worker_security_verified=$false
     caveat='CI-only dedicated user deleted in cleanup; no production provisioning, server authentication, replay-safe requests or command sandbox proven.'
@@ -237,11 +233,21 @@ finally {
   Write-Output 'REMOTE_SHELL_STILL_LOCKED=PASS'
 } finally {
   # Full rollback, including failure paths. Never affect any other OS account.
+  if($workerProcess){
+    try{
+      if(-not $workerProcess.HasExited){
+        $workerProcess.Kill()
+        [void]$workerProcess.WaitForExit(5000)
+      }
+    }catch{}
+    $workerProcess.Dispose()
+  }
   if($taskRegistered){
     Stop-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue
     Unregister-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Confirm:$false -ErrorAction SilentlyContinue
   }
   $plainPassword=$null
+  if($secureLogon){$secureLogon.Dispose()}
   $cleanupFailed=$false
   if($createdUser){
     for($i=0;$i -lt 6 -and (Get-LocalUser -Name $userName -ErrorAction SilentlyContinue);$i++){
@@ -252,5 +258,5 @@ finally {
   if(Get-ScheduledTask -TaskName $taskName -TaskPath $taskPath -ErrorAction SilentlyContinue){$cleanupFailed=$true}
   if(Test-Path -LiteralPath $qa){Remove-Item -LiteralPath $qa -Recurse -Force -ErrorAction SilentlyContinue}
   if($cleanupFailed){throw 'DEDICATED_WORKER_CI_CLEANUP_FAILED: residual disposable Windows account or task'}
-  Write-Output 'DEDICATED_WORKER_TEST_ACCOUNT_AND_TASK_REMOVED=PASS'
+  Write-Output 'DEDICATED_WORKER_TEST_ACCOUNT_REMOVED=PASS'
 }
