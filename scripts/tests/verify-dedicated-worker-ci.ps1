@@ -71,7 +71,7 @@ try {
   [Array]::Clear($random,0,$random.Length)
   $secure=ConvertTo-SecureString -String $plainPassword -AsPlainText -Force
   try {
-    New-LocalUser -Name $userName -Password $secure -AccountNeverExpires -PasswordNeverExpires -Description 'Ephemeral MiceHole Worker security test, remove after test' -ErrorAction Stop|Out-Null
+    New-LocalUser -Name $userName -Password $secure -AccountNeverExpires -PasswordNeverExpires -Description 'MiceHole disposable CI worker; delete after test' -ErrorAction Stop|Out-Null
     $createdUser=$true
   }finally{$secure.Dispose()}
   $workerSid=(Get-LocalUser -Name $userName -ErrorAction Stop).SID.Value
