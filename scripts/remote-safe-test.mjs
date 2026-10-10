@@ -70,7 +70,7 @@ try{
   fs.writeFileSync(protectedConfig,JSON.stringify({workspace:temp,executionEnabled:false}));
   const doctor=spawnSync(path.join(root,"runtime","node.exe"),[path.join(root,"src","server.mjs"),"--doctor"],{
     env:{...env,MICEHOLE_CONFIG:protectedConfig,MICEHOLE_REMOTE_SESSION:"1"},windowsHide:true,encoding:"utf8",timeout:8000});
-  assert.notEqual(doctor.status,0,"A broad remote workspace covering its own config must be rejected");
+  assert.notEqual(doctor.status,0,"A broad remote workspace covering its own config must be rejected. status="+doctor.status+" doctor="+String(doctor.stdout||"").slice(0,600));
   assert.match(doctor.stderr,/overlaps MiceHole configuration/);
   console.log(JSON.stringify({pass:true,checks:[
     "personal Tunnel uses separate remote entry point",

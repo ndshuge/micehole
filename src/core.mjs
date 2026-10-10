@@ -28,8 +28,16 @@ export function loadConfig() {
   if (remoteSession) {
     // A broad workspace could expose the per-user Tunnel key/config via file tools.
     // Restrict it before any remote tool call is accepted. This is not an OS sandbox.
-    const sensitiveRoot = path.resolve(path.join(os.homedir(), "AppData", "Local", "MiceHole"));
-    if (contained(root, sensitiveRoot) || contained(root, path.dirname(configPath))) {
+    // Normalize both sides through the filesystem. On Windows runners and real PCs,
+    // 8.3 aliases / junctions can make string-only containment checks disagree.
+    const configParent = path.dirname(fs.realpathSync.native(configPath));
+    const home = fs.realpathSync.native(os.homedir());
+    const localData = path.join(home, "AppData", "Local");
+    const canonicalLocalData = fs.existsSync(localData) ? fs.realpathSync.native(localData) : localData;
+    const sensitiveFolder = path.join(canonicalLocalData, "MiceHole");
+    const sensitiveRoot = fs.existsSync(sensitiveFolder)
+      ? fs.realpathSync.native(sensitiveFolder) : sensitiveFolder;
+    if (contained(root, sensitiveRoot) || contained(root, configParent)) {
       fail("Remote workspace overlaps MiceHole configuration/credentials; choose a narrower dedicated project directory.");
     }
   }
