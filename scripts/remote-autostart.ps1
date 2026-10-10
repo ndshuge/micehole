@@ -58,12 +58,12 @@ if($Action -eq 'Install'){
   if(-not(Test-Path -LiteralPath $supervisor) -or -not(Test-Path -LiteralPath $launcher)){throw 'Missing bundled Supervisor scripts'}
   if($StateRoot -ne (Join-Path $env:LOCALAPPDATA 'MiceHole\remote')){throw 'Autostart supports only default per-user state root'}
   $user=[Security.Principal.WindowsIdentity]::GetCurrent().Name
-  $action=New-ScheduledTaskAction -Execute 'wscript.exe' -Argument ('//B //NoLogo "'+$launcher+'" "'+$supervisor+'"')
+  $taskExecAction=New-ScheduledTaskAction -Execute 'wscript.exe' -Argument ('//B //NoLogo "'+$launcher+'" "'+$supervisor+'"')
   $logon=New-ScheduledTaskTrigger -AtLogOn -User $user
   $repeat=New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1) -RepetitionDuration (New-TimeSpan -Days 3650)
   $taskSettings=New-ScheduledTaskSettingsSet -Hidden -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
   $principal=New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
-  Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $action -Trigger @($logon,$repeat) -Settings $taskSettings -Principal $principal -Description 'Opt-in user-level personal Tunnel watchdog, checked periodically' | Out-Null
+  Register-ScheduledTask -TaskName $taskName -TaskPath $taskPath -Action $taskExecAction -Trigger @($logon,$repeat) -Settings $taskSettings -Principal $principal -Description 'Opt-in user-level personal Tunnel watchdog, checked periodically' | Out-Null
   Write-Output 'AUTOSTART_INSTALLED=TRUE; use -Action Start to launch now'
   return
 }
