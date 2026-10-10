@@ -56,6 +56,10 @@ try {
   $proof=Join-Path $workspace 'worker-result.json'
   $marker=Join-Path $workspace 'task-did-work.txt'
   $workerScript=Join-Path $workspace 'worker-ci.ps1'
+  # Compile in the runner's Broker context, then load a test-only assembly inside
+  # the separate LocalService Worker. Never inject owner secrets into the assembly.
+  $jobDll=Join-Path $workspace 'MiceHole-W2B-JobRunner.dll'
+  Add-Type -Path (Join-Path $repo 'src\worker\WindowsJobRunner.cs') -OutputAssembly $jobDll -ErrorAction Stop
   $source=@'
 $ErrorActionPreference='Stop'
 $state=[ordered]@{worker_sid='';broker_credential_denied=$false;pipe_authenticated=$false;workspace_marker_written=$false;bounded_child_executed_as_worker=$false;error=''}
@@ -76,21 +80,19 @@ try {
     $state.pipe_authenticated=$true
     Set-Content -LiteralPath '__MARKER__' -Value 'CI_WORKER_EXECUTED_ONLY_AFTER_BROKER_IDENTITY_APPROVAL' -Encoding ASCII
     $state.workspace_marker_written=$true
-    # Fixed, harmless child command used only by disposable CI. This is not a generic shell API.
-    $info=New-Object System.Diagnostics.ProcessStartInfo
-    $info.FileName=Join-Path $env:SystemRoot 'System32\whoami.exe'
-    $info.Arguments='/user'
-    $info.UseShellExecute=$false
-    $info.RedirectStandardOutput=$true
-    $info.CreateNoWindow=$true
-    $child=[System.Diagnostics.Process]::Start($info)
+    # Fixed, harmless CI command only. The worker is already a distinct Windows SID.
+    # This tests suspended CreateProcess -> job assignment -> resume, not a generic API.
+    Add-Type -Path '__JOB_DLL__' -ErrorAction Stop
+    $cmd=Join-Path $env:SystemRoot 'System32\cmd.exe'
+    $testArgs='/d /c whoami /user > "__COMMAND_OUTPUT__"'
+    $job=[MiceHole.SecurityExperiment.WindowsJobRunner]::StartFixed($cmd,$testArgs,'__WORKSPACE__')
     try {
-      if(-not $child.WaitForExit(6000)){ $child.Kill();throw 'Fixed test child exceeded 6 second budget' }
-      if($child.ExitCode -ne 0){throw ('Fixed child exited '+$child.ExitCode)}
-      $out=$child.StandardOutput.ReadToEnd()
+      if(-not $job.Wait(6000)){ $job.Cancel();throw 'Fixed test child exceeded 6 second budget' }
+      if($job.ExitCode -ne 0){throw ('Fixed child exited '+$job.ExitCode)}
+      $out=Get-Content -LiteralPath '__COMMAND_OUTPUT__' -Raw -ErrorAction Stop
       if($out -notmatch 'S-1-5-19'){throw 'Child did not inherit the restricted Worker SID'}
       $state.bounded_child_executed_as_worker=$true
-    }finally{$child.Dispose()}
+    }finally{$job.Dispose()}
     $pipe.WriteByte(35);$pipe.Flush()
   }else{$state.error='Broker rejected Worker or wrong execution identity'}
 }catch{$state.error=$_.Exception.GetType().Name+': '+$_.Exception.Message}
@@ -103,6 +105,9 @@ finally {
   $source=$source.Replace('__MARKER__',$marker.Replace("'","''"))
   $source=$source.Replace('__PROOF__',$proof.Replace("'","''"))
   $source=$source.Replace('__PIPE_NAME__',$pipeName)
+  $source=$source.Replace('__JOB_DLL__',$jobDll.Replace("'","''"))
+  $source=$source.Replace('__WORKSPACE__',$workspace.Replace("'","''"))
+  $source=$source.Replace('__COMMAND_OUTPUT__',(Join-Path $workspace 'worker-whoami-output.txt').Replace("'","''"))
   Set-Content -LiteralPath $workerScript -Value $source -Encoding UTF8
 
   $action=New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "'+$workerScript+'"')
@@ -134,6 +139,7 @@ finally {
     dummy_broker_credential_denied=$true
     bounded_workspace_action_completed=$true
     fixed_child_executed_as_worker_sid=$true
+    fixed_child_suspended_then_job_assigned_before_resume=$true
     no_real_tunnel_or_owner_pc_mutated=$true
     production_worker_security_verified=$false
     caveat='CI-only LocalService is shared with other services; no production peer hardening, replay protection, job objects or command sandbox proven.'
@@ -141,6 +147,7 @@ finally {
   Write-Output 'WINDOWS_PIPE_DACL_AND_KERNEL_PEER_SID=PASS'
   Write-Output 'LOW_PRIVILEGE_WORKSPACE_ACTION=PASS'
   Write-Output 'FIXED_BOUNDED_CHILD_EXECUTION_UNDER_WORKER_SID=PASS'
+  Write-Output 'WORKER_JOB_OBJECT_SUSPENDED_LAUNCH=PASS'
   Write-Output 'BROKER_DUMMY_CREDENTIAL_ACL=PASS'
   Write-Output 'REMOTE_SHELL_STILL_LOCKED=PASS'
 } finally {

@@ -12,6 +12,9 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - name: Verify Windows Job Object process tree containment
+        shell: powershell
+        run: .\scripts\tests\verify-worker-job-ci.ps1
       - name: Verify actual separate Windows LocalService SID and protected dummy credential
         shell: powershell
         run: .\scripts\tests\verify-worker-service-identity-ci.ps1

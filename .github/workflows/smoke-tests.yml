@@ -33,6 +33,9 @@ jobs:
           Add-Type -Path src\worker\WindowsPipeAttestor.cs -ErrorAction Stop
           if (-not [MiceHole.SecurityExperiment.WindowsPipeAttestor]::RejectSameUserClient()) { throw 'A same-user peer bypassed Windows SID gate' }
           Write-Output 'BROKER_PIPE_SAME_USER_NEGATIVE=PASS'
+      - name: Verify Windows Job Object process wait, timeout and descendant cleanup
+        shell: powershell
+        run: .\scripts\tests\verify-worker-job-ci.ps1
       - name: Validate Personal Tunnel onboarding scripts
         shell: powershell
         run: .\scripts\check-remote-syntax.ps1
