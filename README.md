@@ -1,76 +1,34 @@
-# MiceHole — 当前开发路线
+﻿# MiceHole V3 · Windows MCP Bridge
 
-> **V3 Direct Port 预览版正在独立分支开发。** 现有 GitHub Releases 的 v0.1.0 Beta 仍是受限远程文件操作版本；不要把 V3 当作已正式发布的远程高权限安装包。
+**V3 Direct Port is now the main-branch development preview.** The existing v0.1.0 GitHub Release installer is still the old limited remote edition, **not V3**. Independent ChatGPT account / Windows device end-to-end validation is still pending.
 
-**[查看 V3 分支](https://github.com/ndshuge/micehole/tree/v3-direct-port-preview)** · **[V3 使用指南](docs/V3-DIRECT.md)** · **[朋友配置步骤](direct/NEXT-STEPS-FRIEND.md)** · **[代码和测试](scripts/test-direct-port.mjs)**
+[中文 V3 安装指南](docs/V3-DIRECT.md) · [朋友部署步骤](direct/NEXT-STEPS-FRIEND.md) · [安全说明](docs/SECURITY.md) · [历史 Releases](https://github.com/ndshuge/micehole/releases)
 
-| 项目 | V3 Direct Port 预览状态 |
-| --- | --- |
-| 已迁移的核心工具 | 12 项：文件、命令、进程、Git、验证、浏览器、观察、GUI |
-| 专用工具 | Godot / Blender / ComfyUI 不在公开 MCP 工具列表中 |
-| Windows 不同路径、带空格路径、本机启动 | 开发机测试通过 |
-| 自己的工作区/用户名/网络/Tunnel 凭据 | 各自配置，绝不复用作者凭据 |
-| ChatGPT 自定义 Tunnel + 远程高权限 | **高权限远程入口已实现（需本机明确授权）；凭据隔离及朋友实机配对仍未验收** |
-| 正式主分支及 Release | **目前仍为 v0.1.0 Beta** |
+## 功能范围
 
-**最新可测试代码**：请在 V3 分支获取源文件，在 Windows 上运行 `direct/setup-friend.ps1` 与 `direct/scripts/friend-doctor.ps1`。需要 Node.js；部分 GUI/浏览器功能另需依赖。高权限命令继承运行用户权限；工作区限定不等于命令沙箱。切勿把本地 stdio 高权限入口无认证暴露到公网。
+保留 12 个工具：status、read、write、patch、search、run、process、git、validate、browser、observe、gui。明确移除 Godot、Blender、ComfyUI 三个专用工具。
 
----
+- Windows 本机 stdio：在开发电脑上完成握手、工具清单、工作区读写及可迁移路径测试。
+- 个人 Tunnel 高权限入口：可以在朋友的 Windows 上显式启用；未授权启动被拒绝，授权后可注册全部 12 项工具。朋友真实远程调用和安全隔离未验收。
+- 适配不同 Windows 用户、磁盘、工作区和包含空格的路径；公网 IP、Tunnel ID、运行密钥不能复用作者的。
 
-# MiceHole Universal · v0.1.0 Beta
+## 开始安装
 
-**在自己的 Windows 电脑上运行 MCP 工具；连接自己的 ChatGPT 与 Secure MCP Tunnel。**
+1. 下载当前仓库代码（不要下载仍标记 v0.1.0 的旧版 Release），或使用 `powershell -File scripts/build-direct-port.ps1` 构建便携 ZIP。
+2. 在 Windows 安装 Node.js；进入 `direct` 运行 `powershell -NoProfile -File .\setup-friend.ps1`。
+3. 运行 `powershell -NoProfile -File .\scripts\friend-doctor.ps1`，预期工具数是 12。
+4. 本地 MCP 客户端使用 `direct\micehole-direct.cmd`。ChatGPT 个人 Tunnel 的步骤请完整阅读 [V3 安装指南](docs/V3-DIRECT.md)。
 
-[Windows 下载](https://github.com/ndshuge/micehole/releases) · [首次安装](docs/INSTALL.md) · [个人 Tunnel 设置](docs/SELF-HOSTED.md) · [安全说明](docs/SECURITY.md) · [English](docs/README.en.md) · [开发日志](docs/DEVLOG.md)
+## 高权限与安全
 
-> **早期公开测试版，功能有限；不是 OpenAI 官方产品，也不是完整 Codex 替代品。** 安装与个人 Tunnel 的离线配置经过测试，但尚未完成独立新用户真实 ChatGPT 账号配对验收。客户端、套餐和工作区是否允许自定义写入型 MCP 取决于 OpenAI 的实际支持，不能保证所有 Free/Plus 或手机用户可用。
+远程启用后，Shell、GUI 和浏览器能以 Windows 当前用户身份执行操作。**工作区路径限制不是命令沙箱。** 本版尚未证明执行进程和同一 Windows 用户的 Tunnel 凭据完全隔离。只允许用户自己的私有认证 Tunnel，不要暴露未经认证的公网端口，不要以管理员身份运行，首次只在可丢弃测试工作区验证。
 
-## 首版实际能做什么？
+## 验收与版本
 
-| 操作 | 本地 stdio MCP | 个人 Tunnel 远程 MCP |
-| --- | --- | --- |
-| 查询状态、读取/搜索授权目录中的文件 | ✅ | ✅ |
-| 创建文件、修改/补丁文本 | ✅ | ✅ |
-| PowerShell、运行测试和构建 | 明确本地启用后可用；**不属于安全沙箱** | **关闭** |
-| Git 命令、进程启动/等待/结束 | 本地明确启用后可用 | **关闭** |
-| 自动化工程全流程（执行 → 测试 → 修复） | 取决于本地客户端与授权 | **首版不支持** |
-| 自定义插件注册和手机端可用性 | 取决于客户端 | **未完成跨账号验证** |
+已完成：开发机 MCP 握手、12 工具注册、移除三个专用工具、独立工作区测试、含空格目录搬迁、远程入口未授权阻止/授权后工具发现。
 
-远程入口只有五项安全受限工具：`mouse_hole_status`、`mouse_hole_read`、`mouse_hole_write`、`mouse_hole_patch`、`mouse_hole_search`。仅允许明确指定的工作区。**不要把本地工具中具有的终端能力误认为已经通过个人 Tunnel 开放。**
+尚未完成：朋友真实 ChatGPT 账号配对、完整远程命令与 GUI 实测、凭据隔离安全审计、断线与升级测试。因此 main 中的 V3 仍是**源码预览**，并非已验证的稳定发行版。
 
-## 下载
+[旧版安装说明](docs/INSTALL.md) · [旧版测试记录](docs/RELEASE.md) · [LICENSE](LICENSE)
 
-在 [GitHub Releases](https://github.com/ndshuge/micehole/releases) 下载 Windows x64 文件：
-
-- `MiceHole-Universal-0.1.0-Setup.exe` — 当前用户安装，默认无需管理员权限。
-- `MiceHole-Universal-0.1.0-Windows-x64.zip` — 无需安装的便携版。
-- `SHA256SUMS.txt` — 下载后核对两份安装包的 SHA256。
-
-安装包内含 Node.js 运行时和官方 `tunnel-client`（保留其第三方许可）。无须另外购买 MiceHole 编程模型 API；ChatGPT 和 OpenAI Platform/Tunnel 的资格、限额和费用仍按各自政策。
-
-**注意：** 安装包尚未提供数字签名；Windows SmartScreen 可能提示未知发布者。不要关闭杀毒软件或绕过组织设备策略。
-
-## 第一次使用
-
-1. 先看 [Windows 安装与卸载](docs/INSTALL.md)，下载后校验 SHA256，安装并启动 `MiceHole Doctor`。
-2. 检查工作区路径。建议只授权一个新的测试项目，不要选整个系统盘、私人文档或密钥目录。
-3. **本地 MCP 客户端**：将 `micehole.cmd` 配置为客户端的 stdio MCP 程序；见 [连接示例](docs/CONNECT.md)。
-4. **个人 ChatGPT Tunnel（实验性）**：先确认自己的账号有 OpenAI Platform Tunnel 和 ChatGPT 私人 MCP 插件权限，再按 [SELF-HOSTED](docs/SELF-HOSTED.md) 在本机进行隐藏密钥配置、手动启动和健康检查。下载 EXE **不会自动在 ChatGPT 创建插件**。
-5. 从 ChatGPT 测试状态、读取、写入和搜索一个**可丢弃的测试项目**。不要尝试远程 Shell、Git 或构建。
-
-管理窗口 `MiceHole Control` 可以显示状态，并在用户明确同意后配置后台恢复。模拟崩溃恢复测试通过，但真实重启、睡眠唤醒和各类代理网络变化仍需外部实测。
-
-## 安全与限制
-
-- 本地启用命令执行的程序将继承 Windows 当前账户权限。工作区目录限制**不构成命令沙箱**。个人 Tunnel 远程版始终锁定此能力。
-- Tunnel 凭据以当前用户的 Windows DPAPI 加密存储；同一账户的任意恶意程序理论上仍可访问。因此禁止远程运行任意命令。
-- 不要把真实 Tunnel 密钥、API Key、个人配置或者私有文件上传到 Issues。遇到漏洞请先阅读 [SECURITY.md](docs/SECURITY.md)。
-- 卸载会移除软件及其明确创建的后台任务。个人工作区和用户配置可能保留；清理或撤销 Tunnel 凭据请参照 [安装指南](docs/INSTALL.md)。
-
-## 开发进度与源码
-
-- [开发日志](docs/DEVLOG.md)、[验收矩阵](docs/RELEASE.md)、[GitHub Issues](https://github.com/ndshuge/micehole/issues)、[Actions 实测](https://github.com/ndshuge/micehole/actions)。
-- W2-A/B/C 是**未随首版打包**的 Windows Worker 隔离研究原型。通过临时 Windows 测试机的实验不等于完成普通用户版 Worker；不得据此解锁远程命令。
-- 本仓库采用 MIT 许可；Node.js 和 OpenAI 官方 Tunnel 客户端保留其各自许可和 NOTICE。
-
-*独立社区开源项目，与 OpenAI 或 Codex 没有官方关联。*
+独立社区开源项目，不隶属于 OpenAI。
