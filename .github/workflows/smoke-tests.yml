@@ -69,6 +69,8 @@ jobs:
       - name: Verify optional Azure VM reboot workflow safety (offline)
         shell: powershell
         run: .\scripts\cloud\verify-cloud-workflow.ps1
+      - name: Enforce repository hygiene
+        run: node scripts/repository-hygiene.mjs
       - name: Scan tracked files for accidental secrets
         run: node scripts/public-preflight.mjs
       - name: Audit all reachable Git history (fake fixture tokens allowlisted)

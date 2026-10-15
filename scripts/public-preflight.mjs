@@ -17,7 +17,7 @@ for(const file of files){
   if(sensitivePaths.test(file))errors.push("Suspicious path: "+file);
   const stat=fs.statSync(file);totalBytes+=stat.size;
   if(stat.size>10*1024*1024) errors.push("Large tracked file: "+file);
-  if(!/\.(?:md|mjs|ps1|cmd|iss|json|yml|yaml|txt|gitignore|vbs|cs|py)$/i.test(file)&&!file.startsWith(".git")&&file!=="LICENSE")errors.push("Review binary file: "+file);
+  if(!/\.(?:md|mjs|ps1|cmd|iss|json|yml|yaml|txt|gitignore|vbs|cs|py)$/i.test(file)&&!file.startsWith(".git")&&file!=="LICENSE"&&file!==".editorconfig")errors.push("Review binary file: "+file);
   if(stat.size<2*1024*1024 && file!=="scripts/public-preflight.mjs"){
     const data=fs.readFileSync(file,"utf8");
     for(const pattern of secretContents)if(pattern.test(data))errors.push("Sensitive pattern "+pattern.source+" in "+file);

@@ -1,10 +1,44 @@
+# Dependencies and generated distributions
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Downloaded build-tool dependencies (not source)
+build-tools/
+
+# Machine-local QA settings
 qa-config.json
 qa-fixture/
-dist/
-build-tools/
+
+# Logs and temporary state
 *.log
+*.pid
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Environment secrets; examples may be committed
 .env
+.env.*
+!.env.example
+!.env.*.example
+
+# Private credentials and certificates
 *.key
 *.pem
+*.p8
+*.p12
+*.pfx
+*.jks
 secrets/
-node_modules/
+credentials/
+private-keys/
+
+# Editor and OS metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
