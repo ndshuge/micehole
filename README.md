@@ -10,7 +10,7 @@
 | 专用工具 | Godot / Blender / ComfyUI 不在公开 MCP 工具列表中 |
 | Windows 不同路径、带空格路径、本机启动 | 开发机测试通过 |
 | 自己的工作区/用户名/网络/Tunnel 凭据 | 各自配置，绝不复用作者凭据 |
-| ChatGPT 自定义 Tunnel + 远程高权限 | **尚未完成安全隔离与真实朋友电脑配对验收** |
+| ChatGPT 自定义 Tunnel + 远程高权限 | **高权限远程入口已实现（需本机明确授权）；凭据隔离及朋友实机配对仍未验收** |
 | 正式主分支及 Release | **目前仍为 v0.1.0 Beta** |
 
 **最新可测试代码**：请在 V3 分支获取源文件，在 Windows 上运行 `direct/setup-friend.ps1` 与 `direct/scripts/friend-doctor.ps1`。需要 Node.js；部分 GUI/浏览器功能另需依赖。高权限命令继承运行用户权限；工作区限定不等于命令沙箱。切勿把本地 stdio 高权限入口无认证暴露到公网。
