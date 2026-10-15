@@ -1,3 +1,22 @@
+# MiceHole — 当前开发路线
+
+> **V3 Direct Port 预览版正在独立分支开发。** 现有 GitHub Releases 的 v0.1.0 Beta 仍是受限远程文件操作版本；不要把 V3 当作已正式发布的远程高权限安装包。
+
+**[查看 V3 分支](https://github.com/ndshuge/micehole/tree/v3-direct-port-preview)** · **[V3 使用指南](docs/V3-DIRECT.md)** · **[朋友配置步骤](direct/NEXT-STEPS-FRIEND.md)** · **[代码和测试](scripts/test-direct-port.mjs)**
+
+| 项目 | V3 Direct Port 预览状态 |
+| --- | --- |
+| 已迁移的核心工具 | 12 项：文件、命令、进程、Git、验证、浏览器、观察、GUI |
+| 专用工具 | Godot / Blender / ComfyUI 不在公开 MCP 工具列表中 |
+| Windows 不同路径、带空格路径、本机启动 | 开发机测试通过 |
+| 自己的工作区/用户名/网络/Tunnel 凭据 | 各自配置，绝不复用作者凭据 |
+| ChatGPT 自定义 Tunnel + 远程高权限 | **尚未完成安全隔离与真实朋友电脑配对验收** |
+| 正式主分支及 Release | **目前仍为 v0.1.0 Beta** |
+
+**最新可测试代码**：请在 V3 分支获取源文件，在 Windows 上运行 `direct/setup-friend.ps1` 与 `direct/scripts/friend-doctor.ps1`。需要 Node.js；部分 GUI/浏览器功能另需依赖。高权限命令继承运行用户权限；工作区限定不等于命令沙箱。切勿把本地 stdio 高权限入口无认证暴露到公网。
+
+---
+
 # MiceHole Universal · v0.1.0 Beta
 
 **在自己的 Windows 电脑上运行 MCP 工具；连接自己的 ChatGPT 与 Secure MCP Tunnel。**
