@@ -650,7 +650,7 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
         operation: "status",
         ready: true,
         schema_fingerprint: MOUSE_HOLE_SCHEMA_FINGERPRINT,
-        capabilities: ["construction", "read", "write", "patch", "search", "run", "process", "git", "validate", "blender", "godot", "comfyui", "browser", "observe", "gui"],
+        capabilities: ["construction", "read", "write", "patch", "search", "run", "process", "git", "validate", "browser", "observe", "gui"],
         version: MICE_HOLE_VERSION,
         construction_io: "read construction://status|continue?project=<path>; write construction://start|checkpoint|continue|resume|finish",
       };
