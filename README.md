@@ -1,9 +1,9 @@
 ﻿<div align="center">
 
 # 🐭 MiceHole V3
-### 让 ChatGPT 从“给建议”走向“在你授权的 Windows 电脑上真正做事”
+### 利用 ChatGPT 对话模式，远程操作自己的 Windows —— 像 Codex 一样完成工程
 
-**ChatGPT × MCP × Secure Tunnel × Windows**
+**不调用额外的编程模型 API：直接用你 ChatGPT 对话中可选的模型（最高取决于账号和实际模型权限），远程写代码、运行程序、自动测试。**
 
 [![Release](https://img.shields.io/github/v/release/ndshuge/micehole?label=Release&color=2563eb)](https://github.com/ndshuge/micehole/releases/tag/v3.0.0)
 [![Windows](https://img.shields.io/badge/Windows-x64-0078d4)](docs/INSTALL-V3.zh-CN.md)
@@ -17,6 +17,16 @@
 > [!IMPORTANT]
 > V3.0.0 已发布为 GitHub 正常 Release，但**不代表朋友电脑的远程高权限、安全隔离和全部 GUI 场景均已完成验收**。本机 MCP 发现、文件操作、独立路径和远程启动授权门控已有开发机测试证据。使用前请先在可丢弃工程中验收。
 
+## 核心卖点：ChatGPT 对话模式 + 远程本机施工
+
+普通 ChatGPT 对话不能任意直接读取、写入或执行你电脑上的文件和命令。**MiceHole 通过用户主动授权的 MCP 工具与个人 Secure MCP Tunnel，把这些本机操作作为工具能力接入聊天**：你在手机或网页发一句话，电脑端可以按工具请求创建项目、编辑代码、运行测试，再把真实结果返回给 ChatGPT。
+
+- **直接使用 ChatGPT 对话模型，而不是额外调用模型 API**：在账号实际允许的情况下，可以使用 GPT-6 Sol 等高能力对话模型承担编码与推理。适用模型、套餐、额度、MCP/Tunnel 权限以及可能费用都以实际服务为准；不能承诺所有免费账号都有相同能力。
+- **远程而不需要公网固定 IP**：由个人 Tunnel 接入本机 stdio MCP，避免公开无认证的 Windows 命令端口。
+- **真正的工程闭环**：不是只发代码文本，而是 ChatGPT → 读写代码 → 执行 Python/PowerShell → 获取测试结果 → 修复。
+- **不绕过 OpenAI 账户安全规则**：仅在用户账户支持自定义 MCP，并由电脑主人明确授权的情况下使用；这扩展了普通聊天的能力，不是破解 OpenAI 的工具限制或免费解锁官方 Codex。
+
+**一句话定位：用 ChatGPT 对话模式驱动本机远程编程，不再为每次施工额外接一个编码模型 API——实现类似远程 Codex 的工作流。**
 ## 一张图看懂它
 
 ```mermaid
@@ -107,3 +117,5 @@ Doctor 应返回 `local_ready: true` 和 `tools_count: 12`。本地 stdio MCP �
 ---
 
 <div align="center"><sub>独立开源社区项目 · 与 OpenAI / Codex 无官方关联 · 本机执行和高权限授权由用户自行管理</sub></div>
+
+
