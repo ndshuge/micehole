@@ -1,0 +1,5 @@
+tunnel-client/
+*.key
+*.dpapi
+settings.json
+workspace.txt
