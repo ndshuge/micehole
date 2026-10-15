@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 """b2_gate_adapter - the Remote Gate adapter: one structured Gate payload in, one existing
 ControlBridge request out.
 
@@ -43,7 +43,7 @@ from pathlib import Path
 
 #: The canonical runtime package, so ``oh_runtime`` here is the same build d2_control drains.
 RUNTIME_ROOT = Path(
-    os.environ.get("HANAKO_OH_ROOT") or r"E:\CHATGPT\projects\openhanako-runtime"
+    os.environ.get("HANAKO_OH_ROOT") or os.environ.get("MOUSE_HOLE_WORKSPACE") or str(Path.home() / "MiceHoleWorkspace")
 )
 if str(RUNTIME_ROOT) not in sys.path:
     sys.path.insert(0, str(RUNTIME_ROOT))
@@ -61,7 +61,7 @@ OWNER = "project-owner"
 #: The root the production drain reads. Not ``oh_runtime``'s own ``state/control``: a Remote Gate
 #: written there is a request production never drains, which is the wiring defect this replaces.
 GATE_CONTROL_ROOT_ENV = "HANAKO_GATE_CONTROL_ROOT"
-DEFAULT_CONTROL_ROOT = Path(r"E:\CHATGPT\work\bridge\engineering\control")
+DEFAULT_CONTROL_ROOT = Path(os.environ.get("MOUSE_HOLE_WORKSPACE", str(Path.home() / "MiceHoleWorkspace"))) / "work" / "bridge" / "engineering" / "control"
 #: The command_id becomes the request file name, so it must be a usable path segment. Same rule
 #: the engineering door applies to request_id, and the reason it is checked here too.
 COMMAND_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
@@ -237,3 +237,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
