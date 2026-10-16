@@ -1,9 +1,9 @@
 ﻿<div align="center">
 
 # 🐭 MiceHole V3
-### 利用 ChatGPT 对话模式，远程操作自己的 Windows —— 像 Codex 一样完成工程
+### Codex 额度消耗太快？让 ChatGPT 对话模式承担高频本机施工
 
-**不调用额外的编程模型 API：直接用你 ChatGPT 对话中可选的模型（最高取决于账号和实际模型权限），远程写代码、运行程序、自动测试。**
+**ChatGPT 负责决策，MiceHole 是操作 Windows 的“手”。** 复用已获授权的 ChatGPT 对话模型，无需额外对接编码大模型 API；实际可用工具、模型及额度均取决于账号权限。
 
 [![Release](https://img.shields.io/github/v/release/ndshuge/micehole?label=Release&color=2563eb)](https://github.com/ndshuge/micehole/releases/tag/v3.0.0)
 [![Windows](https://img.shields.io/badge/Windows-x64-0078d4)](docs/INSTALL-V3.zh-CN.md)
@@ -16,6 +16,17 @@
 
 > [!IMPORTANT]
 > V3.0.0 已发布为 GitHub 正常 Release，但**不代表朋友电脑的远程高权限、安全隔离和全部 GUI 场景均已完成验收**。本机 MCP 发现、文件操作、独立路径和远程启动授权门控已有开发机测试证据。使用前请先在可丢弃工程中验收。
+
+## 从这里开始
+
+| 你想做什么 | 推荐入口 |
+| --- | --- |
+| **下载并验证** | [V3 Windows Release](https://github.com/ndshuge/micehole/releases/tag/v3.0.0) · [中文安装指南](docs/INSTALL-V3.zh-CN.md) |
+| **确认能否在自己电脑上用** | [当前验收范围](docs/V3-DIRECT.md) · [安全说明](docs/SECURITY.md) |
+| **理解执行链路** | [技术架构](docs/ARCHITECTURE-V3.md) · [为什么做 MiceHole](docs/WHY-MICEHOLE.md) |
+| **追踪项目进度** | [更新日志](CHANGELOG.md) · [开发故事](docs/HISTORY-V3.md) · [MD 工作习惯](docs/MD-HABITS.md) |
+
+> 这不是官方 Codex，也不会增加 ChatGPT 额度；远程高权限需要电脑主人主动授权。请先在可丢弃的工程中测试，再进行实际施工。
 
 ## 核心卖点：ChatGPT 对话模式 + 远程本机施工
 
