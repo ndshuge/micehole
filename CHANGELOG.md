@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased — main] — 2026-10-16
+
+Source update (no new installer or binary release).
+
+- **Process-state isolation:** `mouse_hole_process.start/wait/status/output/stop` no longer persists transient execution changes as `WAITING_PROCESS`, `RUNNING`, `wait_for_process` or `continue_plan` in project STATUS/TODO/LOG. Only an explicit project memory operation writes a durable milestone.
+- **Progressive project context:** `construction://continue?project=...` exposes links to applicable workspace/project `AGENTS.md`, optional MD policy and canonical `STATUS.md` without loading unrelated documents. ChatGPT stays the only planner; MiceHole remains hands and eyes.
+- **Idempotent checkpoints:** repeating an unchanged milestone leaves project memory files untouched; obvious credential patterns in managed project memory fields are rejected.
+- **Portable guidance:** initialization instructions no longer embed a developer-specific disk path; use the configured workspace root. Small projects are not required to adopt the optional four-file managed memory format.
+- **Verification:** added `scripts/test-md-habit.mjs` (5 portable checks), preserved the 12-tool Direct smoke test, and documented what was verified only in a separate internal development environment. See [MD habits](docs/MD-HABITS.md).
+
+**Not changed:** MCP tool count, high-privilege authorization boundary, installed V3 release artifacts, remote tunnel credentials, or need for an actual Windows process backend for long-running commands.
+
 ## [0.1.0 Beta] — 2026-10-10
 
 **First limited public Windows x64 preview.** This is not the finished remote development agent.

@@ -4,6 +4,19 @@ import path from "node:path";
 import { createConstructionContext, discoverProjects, readProjectMemory, resolveProject, writeProjectMemory } from "./mouse-hole-project-memory.mjs";
 export { createConstructionContext } from "./mouse-hole-project-memory.mjs";
 export const CONSTRUCTION_STATES = new Set(["IDLE", "RUNNING", "WAITING_PROCESS", "WAITING_DOWNLOAD", "WAITING_HUMAN", "FAILED", "DONE", "ARCHIVED"]);
+// Small, bounded instruction entry, not a duplicate memory store or full AGENTS load.
+export function projectRuleEntry(root, directory) {
+  const choose = (location) => fs.existsSync(location) && fs.statSync(location).isFile() ? location : null;
+  return {
+    entry_version: 1,
+    global_rules: choose(path.join(root, 'AGENTS.md')),
+    project_rules: choose(path.join(directory, 'AGENTS.md')),
+    md_policy: choose(path.join(root, '_system', 'MD_SESSION_POLICY.md')),
+    asset_index: choose(path.join(root, '_system', 'ASSET_INDEX.md')),
+    current_state: path.join(directory, 'STATUS.md'),
+    guidance: 'At project entry read applicable AGENTS instructions once; resume from current STATUS, verify live files/tests, then act. Read topic docs and asset index only when relevant. Write a milestone checkpoint only when durable facts change; never treat MD as test evidence.'
+  };
+}
 const contexts = new Map();
 function connection(root, supplied) {
   if (supplied) return supplied;
@@ -122,7 +135,8 @@ export function constructionCall(root, args = {}, supplied) {
     return { ok: true, operation: `construction.${operation}`, resumed_from: previousState,
       construction: describeConstructionState(view(memory, context)),
       continuation: { project_root: directory, phase: memory.current_phase, checkpoint: memory.checkpoint, next_action: memory.next_action,
-        instruction: "Read this project's files and execute the next authorized step; verify, repair, checkpoint and continue. No background agent is scheduled." } };
+        rule_entry: projectRuleEntry(root, directory),
+        instruction: "Read the linked applicable rules if not already loaded; inspect actual evidence, carry out authorized next work, and only checkpoint when durable facts change. No background agent is scheduled." } };
   }
   if (operation === "checkpoint") {
     if (memory.project_status !== "ACTIVE") throw new Error("Resume the project before checkpointing");

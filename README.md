@@ -102,6 +102,12 @@ Doctor 应返回 `local_ready: true` 和 `tools_count: 12`。本地 stdio MCP �
 
 尚未验证：朋友的真实 ChatGPT/Windows 账号配对、完整远程高权限执行、GUI/浏览器全场景、独立凭据隔离、断线重连和更新回滚。
 
+## 最新源码更新（2026-10-16）
+
+`main` 分支增加了更轻量的项目 MD 接续规范：ChatGPT 按需读取规则、在重要里程碑主动保存检查点，普通测试进程不再自动覆写项目进度；无变化时跳过重复写入。**MiceHole 仍只是 ChatGPT 的手，不包含第二个 Agent。**
+
+这属于**源码更新，不代表 v3.0.0 已发布安装包自动升级**。详情与测试限制见 [MD 工作习惯与修复说明](docs/MD-HABITS.md)。
+
 ## 文档导航
 
 | 想了解什么 | 从这里开始 |
@@ -111,6 +117,7 @@ Doctor 应返回 `local_ready: true` 和 `tools_count: 12`。本地 stdio MCP �
 | MCP、Tunnel、stdio、执行链路 | [技术架构](docs/ARCHITECTURE-V3.md) |
 | 对话中的设计取舍、踩坑、版本历史 | [开发历程](docs/HISTORY-V3.md) |
 | 更底层的历史测试记录 | [开发日志](docs/DEVLOG.md) |
+| 跨会话续工、什么时候读写 MD、进程污染修复 | [MD 工作习惯](docs/MD-HABITS.md) |
 | 当前验收细节与限制 | [V3 现状](docs/V3-DIRECT.md) |
 | GitHub 发布文件 | [下载 v3.0.0](https://github.com/ndshuge/micehole/releases/tag/v3.0.0) |
 

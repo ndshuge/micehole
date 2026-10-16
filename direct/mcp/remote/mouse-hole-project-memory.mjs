@@ -173,6 +173,12 @@ export function writeProjectMemory(directory, patch, operation) {
     const identity = managed(files["PROJECT.md"], "project");
     const previous = section === null ? {} : parseFields(section, fields);
     const oldIdentity = identity === null ? {} : parseFields(identity, { name: "Name", goal: "Goal", end_condition: "End condition", plan_file: "Plan" });
+    // Guard obvious credential material in *managed fields*. This is a narrow
+    // safety net, not general DLP for direct file/command operations.
+    const secretPattern = /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:sk-proj-|sk-[A-Za-z0-9]{28}|gh[pousr]_[A-Za-z0-9]{30}|AKIA[0-9A-Z]{16})/;
+    if (Object.values(patch).some(value => typeof value === 'string' && secretPattern.test(value))) {
+      throw new Error('Project memory managed fields cannot contain credential material');
+    }
     const next = { project_status: "ACTIVE", work_state: "RUNNING", current_phase: null, current_gate: null, current_step: null,
       checkpoint: null, next_action: null, blocked_reason: null, last_validation: null, name: path.basename(directory),
       goal: null, end_condition: null, plan_file: null, ...oldIdentity, ...previous, ...patch, updated_at: new Date().toISOString() };
@@ -182,6 +188,12 @@ export function writeProjectMemory(directory, patch, operation) {
       if (next[key] !== null && typeof next[key] !== "string") throw new Error(`Invalid project field: ${key}`);
       if (typeof next[key] === "string" && next[key].length > 4000) throw new Error(`Project field too long: ${key}`);
     }
+    // Do not touch STATUS/TODO/LOG or their timestamps when durable facts did not change.
+    // Read under the existing writer lock, so this is safe across short sessions.
+    const persisted = { ...oldIdentity, ...previous };
+    const durableKeys = [...Object.keys(fields).filter(key => key !== "updated_at"), "name", "goal", "end_condition", "plan_file"];
+    if (section !== null && identity !== null && files["TODO.md"] !== null && files["LOG.md"] !== null &&
+        durableKeys.every(key => next[key] === persisted[key])) return { ...next, updated_at: previous.updated_at, unchanged: true };
     const status = Object.entries(fields).map(([key, label]) => `${label}: ${key === "project_status" || key === "work_state" ? next[key] : JSON.stringify(next[key])}`).join("\n");
     const project = Object.entries({ name: "Name", goal: "Goal", end_condition: "End condition", plan_file: "Plan" }).map(([key, label]) => `${label}: ${JSON.stringify(next[key])}`).join("\n");
     const nextDocuments = {

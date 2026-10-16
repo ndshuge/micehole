@@ -12,7 +12,7 @@ import { isPreviewMediaPath, observePreview, observeCapturedPreview } from "./me
 import { isDeniedPath } from "./bridge-core.mjs";
 import { runAdapterAsync } from "./python-adapter-bridge.mjs";
 import { browserClick, browserDumpDom, browserFill, browserInspect, browserScreenshot, browserType } from "./browser-cdp.mjs";
-import { constructionCall, createConstructionContext } from "./mouse-hole-construction-state.mjs";
+import { constructionCall, createConstructionContext, projectRuleEntry } from "./mouse-hole-construction-state.mjs";
 import { MICE_HOLE_VERSION } from "./mouse-hole-project-memory.mjs";
 
 const MAX_OUTPUT = 12_000;
@@ -671,7 +671,8 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
           project_root: result.construction.project_root, phase: result.construction.current_phase,
           checkpoint: result.construction.checkpoint, next_action: result.construction.next_action,
           files: result.construction.files,
-          instruction: "Use construction://continue to reactivate this project, then execute its next authorized step. If a human gate is pending, report it and keep the gate." };
+          rule_entry: projectRuleEntry(root, result.construction.project_root),
+          instruction: "Read applicable linked AGENTS rules if not loaded, verify live evidence, then use construction://continue to reactivate and execute the next authorized step. Respect human gates." };
         return result;
       }
       if (useNativeFiles) {

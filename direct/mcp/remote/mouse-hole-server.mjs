@@ -9,7 +9,7 @@ import { MOUSE_HOLE_TOOLS, mouseHoleCoreCall, mouseHoleConstructionContext } fro
 import { MICE_HOLE_VERSION } from "./mouse-hole-project-memory.mjs";
 import { closeBrowserSessions } from "./browser-cdp.mjs";
 import { runBatch } from "../../tools/mouse-hole/bounded-batch.mjs";
-import { describeConstructionState, isConstructionTrackingActive, loadConstructionState, patchConstructionState } from "./mouse-hole-construction-state.mjs";
+import { describeConstructionState, isConstructionTrackingActive, loadConstructionState } from "./mouse-hole-construction-state.mjs";
 import { serializeBoundedResponse } from "./mouse-hole-response-budget.mjs";
 import { MOUSE_HOLE_SCHEMA_FINGERPRINT } from "./mouse-hole-core.mjs";
 
@@ -94,33 +94,26 @@ async function directCall(name, args) {
         result.metadata = { ...(result.metadata || {}), direct_execution_ms: Math.round((performance.now() - started) * 100) / 100 };
       }
       let construction = result?.construction && typeof result.construction === "object" ? result.construction : loadConstructionState(ROOT, callContext);
-      if (name === "mouse_hole_process" && args.operation === "start" && Number.isInteger(result?.process_id) && isConstructionTrackingActive(construction)) {
-        construction = patchConstructionState(ROOT, {
-          state: "WAITING_PROCESS",
-          active_processes: [...construction.active_processes, result.process_id],
-          last_action: { tool: name, operation: "start", process_id: result.process_id },
-          next_action: "wait_for_process",
-        }, callContext);
-      }
-      if (name === "mouse_hole_process" && args.operation === "wait" && isConstructionTrackingActive(construction)) {
-        const terminal = result?.metadata?.terminal === true || result?.exit_code !== undefined;
-        construction = patchConstructionState(ROOT, {
-          state: terminal ? "RUNNING" : "WAITING_PROCESS",
-          active_processes: terminal ? construction.active_processes.filter(id => id !== args.process_id) : construction.active_processes,
-          last_result: { tool: name, operation: "wait", process_id: args.process_id, terminal, exit_code: result?.exit_code ?? null },
-          next_action: terminal ? "continue_plan" : "wait_for_process",
-        }, callContext);
-      }
-      if (name === "mouse_hole_process" && ["status", "output", "stop"].includes(args.operation) && isConstructionTrackingActive(construction) && Number.isInteger(args.process_id)) {
-        const terminal = args.operation === "stop" || result?.running === false || result?.exit_code !== undefined;
-        if (terminal && construction.active_processes.includes(args.process_id)) {
-          const activeProcesses = construction.active_processes.filter(id => id !== args.process_id);
-          construction = patchConstructionState(ROOT, {
-            state: activeProcesses.length ? "WAITING_PROCESS" : "RUNNING",
-            active_processes: activeProcesses,
-            last_result: { tool: name, operation: args.operation, process_id: args.process_id, terminal: true, exit_code: result?.exit_code ?? null },
-            next_action: activeProcesses.length ? "wait_for_process" : "continue_plan",
-          }, callContext);
+      // A process handle is transient execution bookkeeping, NOT a project milestone.
+      // Never persist a generic wait/continue step to STATUS, TODO or LOG merely
+      // because a tool launched/observed a child process.
+      if (name === "mouse_hole_process" && isConstructionTrackingActive(construction) && construction.project_root) {
+        const project = construction.project_root;
+        const execution = callContext.projects.get(project) ?? { active_processes: [] };
+        const tracked = Array.isArray(execution.active_processes) ? execution.active_processes : [];
+        const processId = args.operation === "start" ? result?.process_id : args.process_id;
+        if (Number.isInteger(processId)) {
+          if (args.operation === "start" && result?.running === true) {
+            execution.active_processes = [...new Set([...tracked, processId])];
+            execution.last_action = { tool: name, operation: "start", process_id: processId };
+          } else if (["wait", "status", "output", "stop"].includes(args.operation)) {
+            const terminal = args.operation === "stop" || result?.metadata?.terminal === true
+              || result?.running === false || result?.exit_code !== undefined;
+            if (terminal) execution.active_processes = tracked.filter(id => id !== processId);
+            execution.last_result = { tool: name, operation: args.operation,
+              process_id: processId, terminal, exit_code: result?.exit_code ?? null };
+          }
+          callContext.projects.set(project, execution);
         }
       }
       if (name === "mouse_hole_status" && (args.detail || "runtime") === "runtime") {
@@ -224,7 +217,7 @@ async function handle(message) {
   if (method === "initialize") return ok(id, {
     protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(params.protocolVersion) ? params.protocolVersion : SUPPORTED_PROTOCOL_VERSIONS.at(-1),
     capabilities: { tools: {} }, serverInfo: SERVER,
-    instructions: 'For @micehole continue or 继续施工, recover the current project via mouse_hole_read construction://continue, or include ?project=<workspace-relative path>. Reactivate with mouse_hole_write construction://continue and then carry out the authorized next action. Project memory lives in PROJECT.md, STATUS.md, TODO.md and LOG.md. A connection is not the project lifetime. Never guess among multiple projects or bypass a human gate.',
+    instructions: 'Read the configured workspace AGENTS.md and selected project AGENTS.md if present and not already loaded; resume from the authoritative project STATUS or construction://continue. Read optional _system/MD_SESSION_POLICY.md only when needed. Selective reads, milestone-only writes; do not require all four project-memory files for every project. For @micehole continue or 继续施工, recover the current project via mouse_hole_read construction://continue, or include ?project=<workspace-relative path>. Reactivate with mouse_hole_write construction://continue and then carry out the authorized next action. Project memory lives in PROJECT.md, STATUS.md, TODO.md and LOG.md. A connection is not the project lifetime. Never guess among multiple projects or bypass a human gate.',
   });
   if (method === "notifications/initialized") { sessionHealth.initialized = true; writeSessionHealth(); return null; }
   if (method === "notifications/cancelled") return null;
