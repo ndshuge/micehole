@@ -11,7 +11,7 @@
  *   - work/b-route/b1-server.mjs         (status/read/pick) — current surface
  *
  * Contract (same as the local stdio bridge, deliberately):
- *   - workspace root defaults to E:\CHATGPT, overridable via HANAKO_WORKSPACE.
+ *   - workspace root uses the configured environment or the process working directory.
  *   - the bridge folder is <workspace>/work/bridge with inbox/ and outbox/.
  *   - "status" means: counts + the five newest JSON file names in each folder.
  *
