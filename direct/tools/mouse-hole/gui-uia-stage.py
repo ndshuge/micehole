@@ -9,7 +9,7 @@ Actions that trigger external effects still require independent application-leve
 """
 import argparse,json,os,pathlib,sys,time
 from pywinauto import Application
-ROOT=pathlib.Path(os.environ.get("MOUSE_HOLE_WORKSPACE",r"E:\CHATGPT")).resolve()
+ROOT=pathlib.Path(os.environ.get("MOUSE_HOLE_WORKSPACE") or str(Path.home() / "MiceHoleWorkspace")).resolve()
 def safe(x):
     p=pathlib.Path(x).resolve()
     try:p.relative_to(ROOT)
