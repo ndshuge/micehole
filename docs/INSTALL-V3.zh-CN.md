@@ -2,12 +2,12 @@
 
 本手册分为 **Windows 本机安装 → 本机验证 → 独立 Tunnel → ChatGPT 授权 → 真人验收**。每位朋友使用自己的账号、路径和凭据。GitHub V3 已是正常 Release，但远程高权限安全隔离和朋友跨账号真实连接仍需验收。
 
-## 0. 下载和校验
+**首次安装：** 推荐先阅读 [ZIP 内的 START-HERE](../direct/START-HERE.zh-CN.md)，双击 `START-HERE.cmd` 完成本地初始化与 Doctor。**手动更新：** 已经安装过 V3 的用户请先阅读 [更新与回滚](../direct/MANUAL-UPDATE.zh-CN.md)，不要直接解压覆盖旧目录。`r`n`r`n## 0. 下载和校验
 
-从 [GitHub V3.0.0 发行页](https://github.com/ndshuge/micehole/releases/tag/v3.0.0) 下载 `MiceHole-V3-Windows-x64.zip` 与 `MiceHole-V3-SHA256SUMS.txt`。在 PowerShell 运行：
+从 [GitHub V3.0.1 发行页](https://github.com/ndshuge/micehole/releases/tag/v3.0.1) 下载 `MiceHole-V3.0.1-Windows-x64.zip` 与 `MiceHole-V3.0.1-SHA256SUMS.txt`。在 PowerShell 运行：
 
 ```powershell
-Get-FileHash .\MiceHole-V3-Windows-x64.zip -Algorithm SHA256
+Get-FileHash .\MiceHole-V3.0.1-Windows-x64.zip -Algorithm SHA256
 ```
 
 将结果与校验文件逐字符对照。不匹配就停止安装。解压到自己的文件夹，例如 `D:\Apps\MiceHoleV3`。不需要拥有作者相同的 E 盘、公网 IP 或 Windows 用户名。
