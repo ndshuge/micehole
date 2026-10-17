@@ -17,7 +17,7 @@ import sys
 import time
 from importlib.machinery import SourceFileLoader
 
-ROOT=Path(os.environ.get("MOUSE_HOLE_WORKSPACE",r"E:\CHATGPT")).resolve()
+ROOT=Path(os.environ.get("MOUSE_HOLE_WORKSPACE") or str(Path.home() / "MiceHoleWorkspace")).resolve()
 def safe(file):
     p=Path(file).resolve()
     try:p.relative_to(ROOT)
