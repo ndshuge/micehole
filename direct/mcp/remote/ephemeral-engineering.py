@@ -27,7 +27,7 @@ from project_lab.application.engineering.environment import EnvironmentProfile, 
 from project_lab.application.engineering.worktrees import LocalWorktreeManager
 from project_lab.domain.enums import EnvironmentClass
 
-ROOT = Path(os.environ.get("HANAKO_WORKSPACE", r"E:\CHATGPT")).resolve()
+ROOT = Path(os.environ.get("MOUSE_HOLE_WORKSPACE") or os.environ.get("HANAKO_WORKSPACE") or str(Path.home() / "MiceHoleWorkspace")).resolve()
 REPOS = {
     "project-lab": ROOT / "projects" / "project-lab",
     "openhanako-runtime": ROOT / "projects" / "openhanako-runtime",
