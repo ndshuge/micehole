@@ -7,6 +7,14 @@ $node=Get-Command node.exe -ErrorAction SilentlyContinue
 if(-not $node){Write-Error 'Node.js not found. Install Node.js LTS and rerun setup.';exit 2}
 $Workspace=[IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($Workspace))
 New-Item -ItemType Directory -Force -Path $Workspace|Out-Null
+# Initialize workspace rules once; never replace user-authored AGENTS.md.
+$rulesFile = Join-Path $Workspace 'AGENTS.md'
+if(-not (Test-Path -LiteralPath $rulesFile)) {
+  $templateFile = Join-Path $base 'WORKSPACE-AGENTS.template.md'
+  if(-not (Test-Path -LiteralPath $templateFile -PathType Leaf)){throw 'Missing workspace guidance template'}
+  Copy-Item -LiteralPath $templateFile -Destination $rulesFile -ErrorAction Stop
+  Write-Output 'WORKSPACE_AGENTS=created'
+}else{Write-Output 'WORKSPACE_AGENTS=preserved'}
 $localCfg=Join-Path $env:LOCALAPPDATA 'MiceHoleV3'
 New-Item -ItemType Directory -Force -Path $localCfg|Out-Null
 Set-Content -LiteralPath (Join-Path $localCfg 'workspace.txt') -Value $Workspace -Encoding ASCII
