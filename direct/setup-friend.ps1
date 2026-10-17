@@ -1,10 +1,21 @@
 [CmdletBinding()]
-param([string]$Workspace = (Join-Path $env:USERPROFILE 'MiceHoleWorkspace'))
+param([string]$Workspace = '')
 $ErrorActionPreference='Stop'
 $base=Split-Path -Parent $MyInvocation.MyCommand.Path
 if(-not(Test-Path (Join-Path $base 'mcp\remote\mouse-hole-server.mjs'))){throw 'Incomplete distribution'}
 $node=Get-Command node.exe -ErrorAction SilentlyContinue
 if(-not $node){Write-Error 'Node.js not found. Install Node.js LTS and rerun setup.';exit 2}
+# Re-running Setup during manual updates must not reset an existing workspace.
+$localCfg = Join-Path $env:LOCALAPPDATA 'MiceHoleV3'
+if([string]::IsNullOrWhiteSpace($Workspace)) {
+  $savedWorkspace = Join-Path $localCfg 'workspace.txt'
+  if(Test-Path -LiteralPath $savedWorkspace -PathType Leaf) {
+    $Workspace = (Get-Content -LiteralPath $savedWorkspace -Raw).Trim()
+  }
+  if([string]::IsNullOrWhiteSpace($Workspace)) {
+    $Workspace = Join-Path $env:USERPROFILE 'MiceHoleWorkspace'
+  }
+}
 $Workspace=[IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($Workspace))
 New-Item -ItemType Directory -Force -Path $Workspace|Out-Null
 # Initialize workspace rules once; never replace user-authored AGENTS.md.

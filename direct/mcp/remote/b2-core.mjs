@@ -24,7 +24,7 @@
  *      matter here, and the door closes it by refusing the whole idea: risk is `low`, the gate flag
  *      is set *here* (closed), and a request that asks for anything else is refused with a reason
  *      rather than silently downgraded.
- *   2. **The workspace is not a parameter.** `E:\CHATGPT` is the only root, whether or not the caller
+ *   2. **The workspace is not a parameter.** the configured workspace is the root, whether or not the caller
  *      sends one; a different value is refused rather than ignored, because silently ignoring it
  *      would let a caller believe a task landed somewhere it did not.
  *

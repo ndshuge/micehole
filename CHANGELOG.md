@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.1] — 2026-10-17
+
+- **First-install guide:** `START-HERE.cmd` and Chinese walkthrough in the Windows ZIP; local-only Setup and Doctor, no automatic remote authorization.
+- **Safer manual update:** explain same-path directory swap, backup, user workspace and credentials preservation, validation and rollback. `setup-friend.ps1` now reuses the saved workspace path when `-Workspace` is not supplied.
+- **Initial AGENTS.md guidance:** on first setup, create concise workspace rules only if absent, prioritizing official CLI/API discovery for unfamiliar software and milestone-only Markdown updates.
+- **Project continuation:** bundles the previously main-only progressive context, idempotent checkpoints and separation of transient process state from project MD.
+- **Read-only network doctor:** optional local proxy port, generic HTTPS/OpenAI HTTP response diagnostics with explicit limits; no subscriptions, credentials or automatic node switching.
+- **Portability cleanup:** bundled Python helper scripts no longer default to the developer E: drive; they use the configured workspace or the current user workspace.
+- **Scope unchanged:** 12 MCP tools; independent authenticated Tunnel and explicit remote high-privilege consent required. No promise of cross-account long-running remote testing or sandbox isolation.
+
+[Friend release notes](docs/RELEASE_NOTES_v3.0.1.zh-CN.md) · [Install](direct/START-HERE.zh-CN.md) · [Manual update](direct/MANUAL-UPDATE.zh-CN.md)
 ## [Unreleased — main] — 2026-10-17 · Network diagnostics
 
 - **Optional Windows network doctor:** `direct/scripts/network-doctor.ps1` checks an explicitly supplied localhost HTTP proxy, generic HTTPS and the unauthenticated OpenAI API response. Optional local Tunnel port check. No credential inspection, DNS modification, proxy selection or background process.

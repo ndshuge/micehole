@@ -5,23 +5,23 @@
 
 **ChatGPT 负责决策，MiceHole 是操作 Windows 的“手”。** 复用已获授权的 ChatGPT 对话模型，无需额外对接编码大模型 API；实际可用工具、模型及额度均取决于账号权限。
 
-[![Release](https://img.shields.io/github/v/release/ndshuge/micehole?label=Release&color=2563eb)](https://github.com/ndshuge/micehole/releases/tag/v3.0.0)
+[![Release](https://img.shields.io/github/v/release/ndshuge/micehole?label=Release&color=2563eb)](https://github.com/ndshuge/micehole/releases/tag/v3.0.1)
 [![Windows](https://img.shields.io/badge/Windows-x64-0078d4)](docs/INSTALL-V3.zh-CN.md)
 [![MCP Tools](https://img.shields.io/badge/MCP-12_Tools-009688)](docs/ARCHITECTURE-V3.md)
 [![License](https://img.shields.io/github/license/ndshuge/micehole)](LICENSE)
 
-**[⬇ 下载 V3](https://github.com/ndshuge/micehole/releases/tag/v3.0.0)** · **[📖 中文安装](docs/INSTALL-V3.zh-CN.md)** · **[🧩 技术实现](docs/ARCHITECTURE-V3.md)** · **[🕰 开发历程](docs/HISTORY-V3.md)**
+**[⬇ 下载 V3](https://github.com/ndshuge/micehole/releases/tag/v3.0.1)** · **[📖 中文安装](docs/INSTALL-V3.zh-CN.md)** · **[🧩 技术实现](docs/ARCHITECTURE-V3.md)** · **[🕰 开发历程](docs/HISTORY-V3.md)**
 
 </div>
 
 > [!IMPORTANT]
-> V3.0.0 已发布为 GitHub 正常 Release，但**不代表朋友电脑的远程高权限、安全隔离和全部 GUI 场景均已完成验收**。本机 MCP 发现、文件操作、独立路径和远程启动授权门控已有开发机测试证据。使用前请先在可丢弃工程中验收。
+> V3.0.1 已发布为 GitHub 正常 Release，但**不代表朋友电脑的远程高权限、安全隔离和全部 GUI 场景均已完成验收**。本机 MCP 发现、文件操作、独立路径和远程启动授权门控已有开发机测试证据。使用前请先在可丢弃工程中验收。
 
 ## 从这里开始
 
 | 你想做什么 | 推荐入口 |
 | --- | --- |
-| **下载并验证** | [V3 Windows Release](https://github.com/ndshuge/micehole/releases/tag/v3.0.0) · [中文安装指南](docs/INSTALL-V3.zh-CN.md) |
+| **下载并验证** | [V3 Windows Release](https://github.com/ndshuge/micehole/releases/tag/v3.0.1) · [中文安装指南](docs/INSTALL-V3.zh-CN.md) |
 | **确认能否在自己电脑上用** | [当前验收范围](docs/V3-DIRECT.md) · [安全说明](docs/SECURITY.md) |
 | **理解执行链路** | [技术架构](docs/ARCHITECTURE-V3.md) · [为什么做 MiceHole](docs/WHY-MICEHOLE.md) |
 | **追踪项目进度** | [更新日志](CHANGELOG.md) · [开发故事](docs/HISTORY-V3.md) · [MD 工作习惯](docs/MD-HABITS.md) |
@@ -78,7 +78,7 @@ flowchart TD
 
 ## Windows 三步开始
 
-从 [v3.0.0 Release](https://github.com/ndshuge/micehole/releases/tag/v3.0.0) 下载 Windows ZIP 与 SHA256 清单，校验后解压至任意自己有权限的目录（不需要作者的 E 盘），并安装 Node.js。
+从 [v3.0.1 Release](https://github.com/ndshuge/micehole/releases/tag/v3.0.1) 下载 Windows ZIP 与 SHA256 清单，校验后解压至任意自己有权限的目录（不需要作者的 E 盘），并安装 Node.js。
 
 ```powershell
 # 在 ZIP 解压后的目录执行
@@ -113,11 +113,11 @@ Doctor 应返回 `local_ready: true` 和 `tools_count: 12`。本地 stdio MCP �
 
 尚未验证：朋友的真实 ChatGPT/Windows 账号配对、完整远程高权限执行、GUI/浏览器全场景、独立凭据隔离、断线重连和更新回滚。
 
-## 最新源码更新（2026-10-16）
+## v3.0.1：朋友安装、手动更新与诊断
 
 `main` 分支增加了更轻量的项目 MD 接续规范：ChatGPT 按需读取规则、在重要里程碑主动保存检查点，普通测试进程不再自动覆写项目进度；无变化时跳过重复写入。**MiceHole 仍只是 ChatGPT 的手，不包含第二个 Agent。**
 
-这属于**源码更新，不代表 v3.0.0 已发布安装包自动升级**。详情与测试限制见 [MD 工作习惯与修复说明](docs/MD-HABITS.md)。
+这些改进已包含在 **v3.0.1 新 ZIP** 中；旧版 v3.0.0 安装包不会自动升级。详情与测试限制见 [MD 工作习惯与修复说明](docs/MD-HABITS.md)。
 
 ## 网络故障诊断（2026-10-17 源码更新）
 
@@ -126,6 +126,10 @@ ChatGPT 突然连不上 MiceHole？**先检查代理、网络和 Tunnel，再决
 [给朋友看的更新说明](docs/RELEASE_NOTES_NETWORK_2026-10-17.md) · [使用方法与局限](docs/NETWORK-RELIABILITY.zh-CN.md)
 
 > 请注意：代理节点自动故障转移需由用户已有的 Clash/Mihomo `fallback` 自行配置。诊断不能直接确定机场流量是否耗尽，也不能证明 ChatGPT 远程 MCP 已成功连接。**本轮是源码更新，现有 v3.0.0 ZIP 尚未更新**。
+
+
+**v3.0.1 安装与更新入口：** [新版说明](docs/RELEASE_NOTES_v3.0.1.zh-CN.md) · [朋友首次安装](direct/START-HERE.zh-CN.md) · [手动更新和回滚](direct/MANUAL-UPDATE.zh-CN.md)。
+
 ## 文档导航
 
 | 想了解什么 | 从这里开始 |
@@ -137,7 +141,7 @@ ChatGPT 突然连不上 MiceHole？**先检查代理、网络和 Tunnel，再决
 | 更底层的历史测试记录 | [开发日志](docs/DEVLOG.md) |
 | 跨会话续工、什么时候读写 MD、进程污染修复 | [MD 工作习惯](docs/MD-HABITS.md) |
 | 当前验收细节与限制 | [V3 现状](docs/V3-DIRECT.md) |
-| GitHub 发布文件 | [下载 v3.0.0](https://github.com/ndshuge/micehole/releases/tag/v3.0.0) |
+| GitHub 发布文件 | [下载 v3.0.0](https://github.com/ndshuge/micehole/releases/tag/v3.0.1) |
 
 ---
 
