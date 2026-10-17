@@ -6,7 +6,7 @@ No remote upload or GUI automation occurs here.
 """
 import argparse,hashlib,json,os,pathlib,shutil,sys,time
 
-ROOT=pathlib.Path(os.environ.get("MOUSE_HOLE_WORKSPACE",r"E:\CHATGPT")).resolve()
+ROOT=pathlib.Path(os.environ.get("MOUSE_HOLE_WORKSPACE") or str(Path.home() / "MiceHoleWorkspace")).resolve()
 
 def safe(p):
     p=pathlib.Path(p).resolve()
