@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # 🐭 MiceHole V3
 ### Codex 额度消耗太快？让 ChatGPT 对话模式承担高频本机施工
@@ -119,6 +119,13 @@ Doctor 应返回 `local_ready: true` 和 `tools_count: 12`。本地 stdio MCP �
 
 这属于**源码更新，不代表 v3.0.0 已发布安装包自动升级**。详情与测试限制见 [MD 工作习惯与修复说明](docs/MD-HABITS.md)。
 
+## 网络故障诊断（2026-10-17 源码更新）
+
+ChatGPT 突然连不上 MiceHole？**先检查代理、网络和 Tunnel，再决定是否重启**。本次为 V3 Direct 新增可选的、只读的 `scripts/network-doctor.ps1`：能识别本地代理端口是否监听、一般 HTTPS 与 OpenAI API 基础连通性，并报告下一步排查方向。支持自己的 Clash/Mihomo HTTP/Mixed 代理，但**不需要开启 Windows 系统代理**，也不会自动改 DNS 或机场节点。
+
+[给朋友看的更新说明](docs/RELEASE_NOTES_NETWORK_2026-10-17.md) · [使用方法与局限](docs/NETWORK-RELIABILITY.zh-CN.md)
+
+> 请注意：代理节点自动故障转移需由用户已有的 Clash/Mihomo `fallback` 自行配置。诊断不能直接确定机场流量是否耗尽，也不能证明 ChatGPT 远程 MCP 已成功连接。**本轮是源码更新，现有 v3.0.0 ZIP 尚未更新**。
 ## 文档导航
 
 | 想了解什么 | 从这里开始 |

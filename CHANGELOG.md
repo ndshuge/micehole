@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased — main] — 2026-10-17 · Network diagnostics
+
+- **Optional Windows network doctor:** `direct/scripts/network-doctor.ps1` checks an explicitly supplied localhost HTTP proxy, generic HTTPS and the unauthenticated OpenAI API response. Optional local Tunnel port check. No credential inspection, DNS modification, proxy selection or background process.
+- **Better failure classification:** distinguishes proxy port closed, proxy/upstream errors, OpenAI-specific HTTP reachability and network probe passed. Subscription quota is explicitly unknown; users must check their provider.
+- **Clash/Mihomo guidance:** reuse an existing `fallback` group for node failover if desired; no bundled node lists, subscriptions or automatic failover changes are shipped.
+- **Friend-facing docs:** [overview](docs/RELEASE_NOTES_NETWORK_2026-10-17.md) and [setup/troubleshooting](docs/NETWORK-RELIABILITY.zh-CN.md).
+- **Verification:** PowerShell parser passed, local closed-port detection and explicit proxy 204/401 live probes passed on the developer machine; existing Direct smoke tests passed. Friend cross-account E2E, planned restart/recovery, and released ZIP integration are not yet verified.
+
+**Release status:** main source/documentation update only; released v3.0.0 ZIP does not include this feature.
 ## [Unreleased — main] — 2026-10-16
 
 Source update (no new installer or binary release).
