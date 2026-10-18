@@ -14,6 +14,7 @@ import { runAdapterAsync } from "./python-adapter-bridge.mjs";
 import { browserClick, browserDumpDom, browserFill, browserInspect, browserScreenshot, browserType } from "./browser-cdp.mjs";
 import { constructionCall, createConstructionContext, projectRuleEntry } from "./mouse-hole-construction-state.mjs";
 import { MICE_HOLE_VERSION } from "./mouse-hole-project-memory.mjs";
+import { assertGuiPolicy, assertBrowserForegroundPolicy } from "./gui-background-policy.mjs";
 
 const MAX_OUTPUT = 12_000;
 const MAX_FILES = 5_000;
@@ -25,6 +26,38 @@ const EDGE_BIN = process.env.EDGE_BIN || "C:\\Program Files (x86)\\Microsoft\\Ed
 const BROWSER_BIN = fs.existsSync(EDGE_BIN) ? EDGE_BIN : null;
 const BROWSER_PROCESS_NAME = BROWSER_BIN ? path.basename(BROWSER_BIN, path.extname(BROWSER_BIN)) : null;
 const GUI_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-windows.ps1");
+const GUI_WINDOW_CAPTURE_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-window-capture.ps1");
+
+function captureBackgroundWindow(root, title) {
+  const name = String(title || "").trim();
+  if (!name || name.length > 512) throw new Error("Exact window title required for background capture");
+  const folder = path.join(fs.realpathSync.native(root), "work", "mouse-hole", "captures");
+  fs.mkdirSync(folder, { recursive: true });
+  const dest = path.join(folder, "window-" + process.pid + "-" + Date.now() + ".png");
+  const result = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Sta", "-ExecutionPolicy", "Bypass",
+    "-File", GUI_WINDOW_CAPTURE_SCRIPT, "-Title", name, "-Output", dest], {
+      windowsHide: true, encoding: "utf8", timeout: 8000, maxBuffer: 128 * 1024
+    });
+  if (result.status !== 0) {
+    try { fs.rmSync(dest, { force: true }); } catch {}
+    throw new Error("Background window capture unavailable: " + String(result.stderr || result.error?.message || result.stdout || "unknown error").trim().slice(-600));
+  }
+  try {
+    const receipt = JSON.parse(String(result.stdout).trim().split(/\r?\n/).at(-1));
+    const data = fs.readFileSync(dest);
+    if (data.length < 200 || data.length > 12 * 1024 * 1024) throw new Error("Invalid background screenshot size");
+    return { ok: true, operation: "observe", path: dest,
+      metadata: { backend: "win32_printwindow_background", title: name, width: receipt.width,
+        height: receipt.height, sampled_colors: receipt.sampled_colors, bytes: data.length,
+        warning: "Application-specific capture only; minimized, protected or custom-rendered windows may be unsupported." },
+      __mcp_content: [{ type: "image", mimeType: "image/png", data: data.toString("base64") }]
+    };
+  } catch (error) {
+    try { fs.rmSync(dest, { force: true }); } catch {}
+    throw error;
+  }
+}
+
 const GUI_PLACEMENT_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-placement.ps1");
 const GUI_NATIVE_BUTTON_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-native-button.py");
 const COMFYUI_URL = (process.env.COMFYUI_URL || "http://127.0.0.1:8188").replace(/\/+$/, "");
@@ -190,7 +223,7 @@ function browserBlockSignal(dom) {
 }
 
 function foregroundPageText(args) {
-  if (args.foreground_control !== true) throw new Error("foreground_control=true is required for foreground browser fallback");
+  assertBrowserForegroundPolicy(args);
   if (!BROWSER_PROCESS_NAME) throw new Error("No supported Chromium browser found");
   const titleFilter = args.title ? `$_.MainWindowTitle -like ${psString(`*${args.title}*`)}` : "$true";
   const maxChars = Math.max(1000, Math.min(120000, Number(args.max_chars || 30000)));
@@ -275,7 +308,7 @@ async function placeNewBrowserWindow(knownHandles, expectedPid) {
 async function browserCall(root, args) {
   if (args.operation === "status") return { ok: !!BROWSER_BIN, operation: "browser.status", ready: !!BROWSER_BIN, metadata: { executable: BROWSER_BIN, headless: true, transport: "cdp", foreground_fallback: true } };
   if (args.operation === "open_foreground") {
-    if (args.foreground_control !== true) throw new Error("foreground_control=true is required for foreground browser fallback");
+    assertBrowserForegroundPolicy(args);
     if (!BROWSER_BIN) return { ok: false, operation: "browser.open_foreground", error_class: "unavailable", error_detail: "No supported Chromium browser found", retryable: true };
     const url = browserUrl(args.url);
     const existingWindows = snapshotBrowserWindows();
@@ -535,8 +568,7 @@ async function launchOwnedGui(args) {
 }
 
 async function guiCall(args) {
-  const passive = new Set(["status", "wait"]);
-  if (!passive.has(args.operation) && args.foreground_control !== true) throw new Error("foreground_control=true is required for GUI actuation");
+  const policyMode = assertGuiPolicy(args);
   if (args.operation === "launch") return launchOwnedGui(args);
   // Native semantic actions can target one exact Win32/WinForms button without
   // requiring foreground ownership or moving the physical cursor. Never fall
@@ -582,7 +614,7 @@ async function guiCall(args) {
   const line = String(childResult || "").trim().split(/\r?\n/).filter(Boolean).at(-1);
   if (!line) throw new Error("GUI backend returned no result");
   const payload = JSON.parse(line);
-  return { ok: payload.ok === true, operation: `gui.${args.operation}`, metadata: { state: payload.state || null, foreground_required: !passive.has(args.operation), backend: payload.semantic_backend || "guarded_powershell", ...(semanticButton ? {action_ms:payload.action_ms,cursor_unchanged:payload.cursor_unchanged,message_delivered:payload.message_delivered,target_foreground:payload.target_foreground,control_handle:payload.control_handle} : {}) } };
+  return { ok: payload.ok === true, operation: `gui.${args.operation}`, metadata: { state: payload.state || null, foreground_required: policyMode === "foreground_opt_in", mode: policyMode, backend: payload.semantic_backend || "guarded_powershell", ...(semanticButton ? {action_ms:payload.action_ms,cursor_unchanged:payload.cursor_unchanged,message_delivered:payload.message_delivered,target_foreground:payload.target_foreground,control_handle:payload.control_handle} : {}) } };
 }
 
 /** Isolated, bounded commands never read a shared Desktop Commander process-output buffer. */
@@ -794,6 +826,7 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
     }
     if (name === "mouse_hole_browser") return browserCall(root, args);
     if (name === "mouse_hole_observe") {
+      if (args.target === "window" && args.path === "background") return captureBackgroundWindow(root, args.title);
       if (args.target === "image" && isPreviewMediaPath(args.path)) return observePreview(root,args);
       if (["screen","window"].includes(args.target) && isPreviewMediaPath(args.path)) {
         if (args.target==="window" && !args.title) throw new Error("Window title required");

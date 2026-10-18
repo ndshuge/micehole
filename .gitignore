@@ -42,3 +42,6 @@ private-keys/
 Thumbs.db
 .idea/
 .vscode/
+
+# Transient runtime screenshots and state
+work/

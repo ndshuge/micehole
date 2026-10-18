@@ -1,5 +1,18 @@
 # Changelog
 
+## [V3 background-first GUI patch] - 2026-10-18
+
+- Default-deny foreground GUI/Edge operations unless a session explicitly opts in and each action provides foreground_control=true.
+- Preserve native Win32/WinForms button actions without moving the physical cursor or stealing focus.
+- Serialize foreground mouse, keyboard and focus commands using a named Windows mutex, with recent user-activity guard and exact keyboard target requirement.
+- Make the former automatic four-quadrant placement opt-in (MOUSE_HOLE_GUI_LAYOUT=quadrant).
+- Add opt-in background window screenshot via observe(target=window, title=..., path=background), with minimized/blank-image failure reporting.
+- No new MCP tools, no VM or background scheduler. Compatibility depends on each Windows app. TeleAgent is not certified for background operation.
+- Tests: policy/permission regression, disposable WinForms real capture+button cycle, original Direct 12-tool compatibility.
+
+[Chinese documentation](docs/BACKGROUND-GUI-2026-10-18.zh-CN.md)
+
+
 ## [3.0.1] — 2026-10-17
 
 - **First-install guide:** `START-HERE.cmd` and Chinese walkthrough in the Windows ZIP; local-only Setup and Doctor, no automatic remote authorization.
