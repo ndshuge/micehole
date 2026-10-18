@@ -4,6 +4,7 @@
 
 - Default-deny foreground GUI/Edge operations unless a session explicitly opts in and each action provides foreground_control=true.
 - Preserve native Win32/WinForms button actions without moving the physical cursor or stealing focus.
+- Fix false failures during real human mouse movement: observed cursor position changes are diagnostic only, while BM_CLICK never sends physical mouse input. Verified with 30-second concurrent screenshot, button and CLI workloads.
 - Serialize foreground mouse, keyboard and focus commands using a named Windows mutex, with recent user-activity guard and exact keyboard target requirement.
 - Make the former automatic four-quadrant placement opt-in (MOUSE_HOLE_GUI_LAYOUT=quadrant).
 - Add opt-in background window screenshot via observe(target=window, title=..., path=background), with minimized/blank-image failure reporting.

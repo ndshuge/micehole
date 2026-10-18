@@ -614,7 +614,7 @@ async function guiCall(args) {
   const line = String(childResult || "").trim().split(/\r?\n/).filter(Boolean).at(-1);
   if (!line) throw new Error("GUI backend returned no result");
   const payload = JSON.parse(line);
-  return { ok: payload.ok === true, operation: `gui.${args.operation}`, metadata: { state: payload.state || null, foreground_required: policyMode === "foreground_opt_in", mode: policyMode, backend: payload.semantic_backend || "guarded_powershell", ...(semanticButton ? {action_ms:payload.action_ms,cursor_unchanged:payload.cursor_unchanged,message_delivered:payload.message_delivered,target_foreground:payload.target_foreground,control_handle:payload.control_handle} : {}) } };
+  return { ok: payload.ok === true, operation: `gui.${args.operation}`, metadata: { state: payload.state || null, foreground_required: policyMode === "foreground_opt_in", mode: policyMode, backend: payload.semantic_backend || "guarded_powershell", ...(semanticButton ? {action_ms:payload.action_ms,cursor_unchanged:payload.cursor_unchanged,global_mouse_input_used:payload.global_mouse_input_used,message_delivered:payload.message_delivered,target_foreground:payload.target_foreground,control_handle:payload.control_handle} : {}) } };
 }
 
 /** Isolated, bounded commands never read a shared Desktop Commander process-output buffer. */
