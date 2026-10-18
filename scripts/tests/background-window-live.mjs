@@ -29,7 +29,8 @@ try{
  assert(fs.existsSync(observed.path));
  const clicked=await mouseHoleCoreCall(root,"mouse_hole_gui",{operation:"click",title,text:"TEST CLICK",foreground_control:true});
  assert.equal(clicked.ok,true);
- assert.equal(clicked.metadata.cursor_unchanged,true);
+ assert.equal(clicked.metadata.global_mouse_input_used,false);
+ assert.equal(clicked.metadata.message_delivered,true);
  const after=await mouseHoleCoreCall(root,"mouse_hole_observe",{target:"window",title,path:"background"});
  assert(after.ok);
  assert.notEqual(observed.__mcp_content[0].data,after.__mcp_content[0].data,"button effect should change frame");

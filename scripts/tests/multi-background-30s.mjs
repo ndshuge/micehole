@@ -27,7 +27,7 @@ try{
   const click=async()=>{
     while(Date.now()<end){
       const x=await mouseHoleCoreCall(root,"mouse_hole_gui",{operation:"click",title,text:"TEST CLICK",foreground_control:true});
-      assert(x.ok && x.metadata.cursor_unchanged===true);
+      assert(x.ok && x.metadata.global_mouse_input_used===false && x.metadata.message_delivered===true);
       count.clicks++;await sleep(900);
     }
   };
