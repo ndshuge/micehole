@@ -66,11 +66,13 @@ def native_button(title,caption,actuate=True):
         sent=UI.SendMessageTimeoutW(hwnd,0x00F5,0,0,2,1500,ctypes.byref(result))
         if not sent: raise RuntimeError("BM_CLICK timed out; action not confirmed")
     second=POINT();UI.GetCursorPos(ctypes.byref(second))
-    if (first.x,first.y)!=(second.x,second.y):
-        raise RuntimeError("Physical mouse changed during semantic action")
+    # The human may move the cursor concurrently. A changed position is
+    # diagnostic only; this Win32 BM_CLICK path never sends global mouse input.
+    cursor_observed_same=(first.x,first.y)==(second.x,second.y)
     return {"ok":True,"operation":"click","semantic_backend":"native_button_BM_CLICK",
             "control_handle":hwnd,"parent_handle":int(parent),"target_foreground":bool(UI.GetForegroundWindow()==parent),
-            "action_ms":round((time.perf_counter()-started)*1000,3),"cursor_unchanged":True,
+            "action_ms":round((time.perf_counter()-started)*1000,3),
+            "cursor_unchanged":cursor_observed_same,"global_mouse_input_used":False,
             "message_delivered":bool(actuate)}
 
 if __name__=="__main__":
