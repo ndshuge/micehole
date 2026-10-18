@@ -41,3 +41,10 @@ node scripts/test-direct-port.mjs
 回滚：停掉本人新版本的 MiceHole，重新使用保留的 v3.0.1 安装目录及配置即可；无需修改 Windows 系统策略或删除个人工作区。
 
 本机已完成受控 WinForms 非前台窗口截图（460×240，7 个采样颜色）与原有 12 工具兼容性测试。独立用户远程 Tunnel、长时间多 Agent 并发及 TeleAgent 的专项验收不在本次完成范围。
+
+## 后续验收（2026-10-18）
+
+- 30 秒三个后台执行通道并行：后台截图 26 次、原生按钮点击 26 次、后台 CLI 40 次、前台标题抽样 52 次。测试窗口抢焦点 0 次，执行错误 0 次。前台记录到游戏和用户的 PowerShell 窗口，因此仅证明测试窗口未主动取得焦点，不代表整机焦点始终不变。
+- TeleAgent 当前最小化，后台窗口捕获明确返回 minimized；没有恢复或抢占 TeleAgent 窗口，后台操作兼容性尚待在可见非前台状态验证。
+- GitHub 历史审计：既有 5 个旧 Git Blob 共 7 处个人工作区路径，已登记精确对象 SHA 与源文件作为历史债务。公开 Git 历史并未删除；新路径、新 SHA、令牌和密钥类内容仍必须阻断 CI。独立临时仓库注入新路径的反向测试已通过。
+- 测试来源：scripts/tests/multi-background-30s.mjs，scripts/tests/history-audit-regression.mjs；Windows GitHub CI 跑历史安全审计，真桌面并发验收在本机运行，不以非交互式 CI 冒充真机。
