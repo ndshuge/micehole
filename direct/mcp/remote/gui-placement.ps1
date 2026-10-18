@@ -89,6 +89,12 @@ if ($Mode -eq "launch") {
   $ExpectedPid = $started.Id
 }
 if ($Mode -eq "place" -and $ExpectedPid -le 0) { throw "ExpectedPid is required to prove new window ownership" }
+# Keep 2026-10-13 quadrant layout as an opt-in for foreground launches.
+# The default is to avoid rearranging the user's desktop.
+if ($env:MOUSE_HOLE_GUI_LAYOUT -ne 'quadrant') {
+  @{ok=$true; placed=$false; launched_pid=$ExpectedPid; reason="layout_disabled"} | ConvertTo-Json -Compress
+  return
+}
 $known = [Collections.Generic.HashSet[long]]::new()
 foreach ($value in $KnownHandles.Split(",")) {
   $parsed = [long]0

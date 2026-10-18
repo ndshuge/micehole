@@ -134,7 +134,7 @@ function Assert-GuiTarget([int]$AtX,[int]$AtY) {
   if ($actual -ne $target) { throw "Target point is occluded by a different window" }
 }
 function Assert-GuiForeground {
-  if ([string]::IsNullOrWhiteSpace($Title)) { return }
+  if ([string]::IsNullOrWhiteSpace($Title)) { throw "Exact target window title required for keyboard input" }
   $target = [HanakoGuiNative]::FindWindow([IntPtr]::Zero,$Title)
   if ($target -eq [IntPtr]::Zero -or [HanakoGuiNative]::GetForegroundWindow() -ne $target) {
     throw "Expected keyboard target is not foreground"
@@ -148,6 +148,44 @@ function Send-KeysSafe([string]$value) {
   [System.Windows.Forms.SendKeys]::SendWait($value)
 }
 
+# All physical cursor, keyboard and focus operations share one cross-process input gate.
+# Semantic BM_CLICK is handled outside this file and never touches global input.
+$guiInputLock = $null
+$guiInputHeld = $false
+if ($Operation -notin @('status', 'wait')) {
+  if ($env:MOUSE_HOLE_GUI_FOREGROUND_MODE -ne 'allow') {
+    throw "Foreground GUI disabled by default: MOUSE_HOLE_GUI_FOREGROUND_MODE=allow required"
+  }
+  $guiInputLock = [Threading.Mutex]::new($false, 'Local\MouseHoleGuiInput')
+  try {
+    try { $guiInputHeld = $guiInputLock.WaitOne(4000) }
+    catch [Threading.AbandonedMutexException] { $guiInputHeld = $true }
+    if (-not $guiInputHeld) { throw "GUI input busy; retry only when other input ends" }
+    Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public static class MouseHoleUserIdle {
+  [StructLayout(LayoutKind.Sequential)]
+  public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
+  [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LASTINPUTINFO info);
+  public static uint IdleMs() {
+    var info = new LASTINPUTINFO();
+    info.cbSize = (uint)Marshal.SizeOf(typeof(LASTINPUTINFO));
+    if (!GetLastInputInfo(ref info)) throw new InvalidOperationException("Cannot check user activity");
+    return unchecked((uint)Environment.TickCount - info.dwTime);
+  }
+}
+"@
+    if ([MouseHoleUserIdle]::IdleMs() -lt 3000) {
+      throw "User recently active; foreground GUI input deferred"
+    }
+  } catch {
+    if ($guiInputHeld) { [void]$guiInputLock.ReleaseMutex() }
+    $guiInputLock.Dispose()
+    throw
+  }
+}
+try {
 switch ($Operation) {
   "status" {
     $state = Get-GuiState
@@ -250,3 +288,7 @@ switch ($Operation) {
 
 $state = Get-GuiState
 [pscustomobject]@{ ok=$true; operation=$Operation; state=$state } | ConvertTo-Json -Compress -Depth 5
+} finally {
+  if ($guiInputHeld) { [void]$guiInputLock.ReleaseMutex() }
+  if ($null -ne $guiInputLock) { $guiInputLock.Dispose() }
+}
