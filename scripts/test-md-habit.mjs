@@ -59,8 +59,8 @@ try{
   })});
   const original=memory();
   const resumed=await tool('mouse_hole_read',{path:'construction://continue?project=projects%2Fdemo'});
-  assert.equal(resumed.continuation.rule_entry.global_rules,path.join(workspace,'AGENTS.md'));
-  assert.equal(resumed.continuation.rule_entry.project_rules,path.join(project,'AGENTS.md'));
+  assert.equal(fs.realpathSync.native(resumed.continuation.rule_entry.global_rules).toLowerCase(),fs.realpathSync.native(path.join(workspace,'AGENTS.md')).toLowerCase());
+  assert.equal(fs.realpathSync.native(resumed.continuation.rule_entry.project_rules).toLowerCase(),fs.realpathSync.native(path.join(project,'AGENTS.md')).toLowerCase());
   assert.deepEqual(memory(),original);
   checks.push('project-scoped rules are discoverable without read-time mutations');
 
