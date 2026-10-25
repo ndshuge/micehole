@@ -50,8 +50,8 @@ try{
   const init=await rpc('initialize',{protocolVersion:'2025-11-25'});
   assert.match(init.result.instructions,/AGENTS\.md/);
   const tools=await rpc('tools/list');
-  assert.equal(tools.result.tools.length,12);
-  checks.push('portable instructions and unchanged 12-tool surface');
+  assert.equal(tools.result.tools.length,15);
+  checks.push('portable instructions and vNext 15-tool surface');
 
   await tool('mouse_hole_write',{path:'construction://start',content:JSON.stringify({
     project:'projects/demo',goal:'Check memory lifecycle',current_phase:'testing',
