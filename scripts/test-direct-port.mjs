@@ -16,8 +16,8 @@ try{
 const init=await ask('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'friend-test',version:'1'}});
 reports.push(['handshake',init.result?.serverInfo?.name==='mouse-hole']);
 const names=(await ask('tools/list',{})).result.tools.map(x=>x.name);
-reports.push(['exactly 12 tools',names.length===12]);
-reports.push(['specialists absent',['mouse_hole_godot','mouse_hole_blender','mouse_hole_comfyui'].every(n=>!names.includes(n))]);
+reports.push(['exactly 15 tools',names.length===15]);
+reports.push(['specialists present',['mouse_hole_godot','mouse_hole_blender','mouse_hole_comfyui'].every(n=>names.includes(n))]);
 reports.push(['high privilege tools advertised',['mouse_hole_run','mouse_hole_process','mouse_hole_git','mouse_hole_gui','mouse_hole_browser'].every(n=>names.includes(n))]);
 const state=await ask('tools/call',{name:'mouse_hole_status',arguments:{}});
 reports.push(['status',state.result?.isError!==true]);

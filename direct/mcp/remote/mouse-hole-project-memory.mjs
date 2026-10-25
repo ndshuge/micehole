@@ -3,7 +3,13 @@ import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { isDeniedPath, resolveUnder, realpathInside } from "./bridge-core.mjs";
 
-export const MICE_HOLE_VERSION = "0.2.0";
+export const MICE_HOLE_VERSION = "0.2.1";
+// Content-derived build identity: unlike the release label, this changes whenever
+// the direct stdio server, core, or project-memory implementation changes.
+const MICE_HOLE_BUILD_SOURCES = ["./mouse-hole-project-memory.mjs", "./mouse-hole-core.mjs", "./mouse-hole-server.mjs"];
+export const MICE_HOLE_BUILD = createHash("sha256")
+  .update(MICE_HOLE_BUILD_SOURCES.map(source => source + ":" + createHash("sha256").update(fs.readFileSync(new URL(source, import.meta.url))).digest("hex")).join("\n"))
+  .digest("hex").slice(0, 16);
 export const PROJECT_STATES = new Set(["ACTIVE", "DONE", "ARCHIVED"]);
 const FILES = ["PROJECT.md", "STATUS.md", "TODO.md", "LOG.md"];
 const LIMIT = 256 * 1024;

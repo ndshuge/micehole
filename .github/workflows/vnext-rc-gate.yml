@@ -1,0 +1,35 @@
+name: MiceHole vNext RC portable gate
+
+on:
+  pull_request:
+    paths:
+      - 'direct/**'
+      - 'scripts/test-direct-port.mjs'
+      - 'scripts/test-md-habit.mjs'
+      - 'scripts/test-remote-high-privilege.mjs'
+      - 'scripts/build-direct-port.ps1'
+      - 'scripts/vnext-rc-gate.ps1'
+      - '.github/workflows/vnext-rc-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vnext-rc-local-portable:
+    name: vNext local portable RC gate
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run disposable MCP / memory / remote consent tests, package and unpacked installer gate
+        shell: powershell
+        run: .\scripts\vnext-rc-gate.ps1 -OutputDirectory "$env:RUNNER_TEMP\micehole-vnext-rc"
+      - name: Assert no change to stable V3 release pipeline
+        shell: powershell
+        run: |
+          if (-not (Test-Path .\scripts\build-release.ps1)) { throw 'Stable release pipeline missing' }
+          Write-Output 'VNEXT_RC_SEPARATE_FROM_STABLE_PIPELINE=PASS'

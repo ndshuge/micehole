@@ -16,5 +16,5 @@ fs.writeFileSync(path.join(consent,'remote-high-privilege.enabled'),'consent-v1'
 fs.mkdirSync(env.MOUSE_HOLE_WORKSPACE);
 const granted=spawnSync('cmd.exe',['/d','/c',cmd],{input:req,encoding:'utf8',env,timeout:7000});
 const tools=JSON.parse(granted.stdout).result.tools.map(x=>x.name);
-if(granted.status!==0 || tools.length!==12 || !tools.includes('mouse_hole_run') || !tools.includes('mouse_hole_gui'))throw Error('Remote tool advertisement failed');
-console.log(JSON.stringify({pass:true,remote_without_consent:'blocked',remote_with_consent:'12 tools registered',credential_isolation:'NOT_PROVEN',shell_remote:true}));
+if(granted.status!==0 || tools.length!==15 || !tools.includes('mouse_hole_run') || !tools.includes('mouse_hole_gui'))throw Error('Remote tool advertisement failed');
+console.log(JSON.stringify({pass:true,remote_without_consent:'blocked',remote_with_consent:'15 tools registered',credential_isolation:'NOT_PROVEN',shell_remote:true}));

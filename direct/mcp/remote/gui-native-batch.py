@@ -1,10 +1,10 @@
 """One-shot concurrent native Windows button operations, no resident service, queue or Agent.
 
 Invoke via existing Mice Hole run/long process:
- python mcp/remote/gui-native-batch.py --manifest E:\\CHATGPT\\work\\batch.json
+ python mcp/remote/gui-native-batch.py --manifest <workspace>\\work\\batch.json
  Manifest:
  {"actions":[{"title":"EXACT_WINDOW_TITLE","text":"EXACT_NATIVE_BUTTON_LABEL"},...],
-  "concurrency":2,"receipt":"E:\\\\CHATGPT\\\\work\\\\batch-result.json"}
+  "concurrency":2,"receipt":"<workspace>\\work\\batch-result.json"}
 Only distinct visible Win32 or WinForms native buttons. Identical window titles rejected.
 The result confirms Win32 message delivery, not arbitrary application business outcome.
 """
@@ -17,7 +17,7 @@ import sys
 import time
 from importlib.machinery import SourceFileLoader
 
-ROOT=Path(os.environ.get("MOUSE_HOLE_WORKSPACE") or str(Path.home() / "MiceHoleWorkspace")).resolve()
+ROOT=Path(os.environ.get("MOUSE_HOLE_WORKSPACE",str(Path.home() / "MiceHoleWorkspace"))).resolve()
 def safe(file):
     p=Path(file).resolve()
     try:p.relative_to(ROOT)

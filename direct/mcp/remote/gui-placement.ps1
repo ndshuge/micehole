@@ -1,5 +1,5 @@
 param(
-  [ValidateSet("snapshot", "place", "launch")][string]$Mode = "snapshot",
+  [ValidateSet("snapshot", "place", "launch", "reconcile")][string]$Mode = "snapshot",
   [string]$Executable = "",
   [string]$Arguments = "",
   [string]$ProcessName = "msedge",
@@ -8,6 +8,27 @@ param(
   [ValidateRange(0, 5000)][int]$WaitMs = 2200
 )
 $ErrorActionPreference = "Stop"
+# The launcher is a separate PowerShell path; a running old MCP process may
+# still invoke it. Protect gameplay here too, even before service reload.
+if ($Mode -eq "launch") {
+  if ($env:MOUSE_HOLE_GUI_GAME_LOCK -eq 'on') { throw "Manual gaming lock active; GUI launch refused" }
+  $py = if ($env:HANAKO_PYTHON) { $env:HANAKO_PYTHON } else { 'python' }
+  $raw = & $py -u (Join-Path $PSScriptRoot 'gui-safety-probe.py') 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "GUI launch blocked: safety probe failed" }
+  try { $safety = (($raw | Out-String).Trim() | ConvertFrom-Json) }
+  catch { throw "GUI launch blocked: invalid safety probe" }
+  if ($null -eq $safety -or $null -eq $safety.idle_ms -or
+      $safety.block_foreground -isnot [bool] -or
+      $safety.game_running -isnot [bool] -or
+      $safety.fullscreen_foreground -isnot [bool]) {
+    throw "GUI launch blocked: incomplete safety state"
+  }
+  if ($safety.block_foreground -or $safety.game_running -or $safety.fullscreen_foreground) {
+    throw "GUI launch blocked: game or fullscreen application active"
+  }
+  if ([int64]$safety.idle_ms -lt 900) { throw "GUI launch deferred: user currently interacting" }
+}
+
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @"
@@ -49,6 +70,11 @@ public static class MouseHolePlacementNative {
     }, IntPtr.Zero);
     return windows.ToArray();
   }
+  [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)] private static extern bool SetProp(IntPtr hwnd, string key, IntPtr value);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] private static extern IntPtr GetProp(IntPtr hwnd, string key);
+  private const string OwnerKey = "MiceHoleVerifiedAgentQuarterWindowV1";
+  public static bool MarkOwned(long handle) { return SetProp(new IntPtr(handle), OwnerKey, new IntPtr(1)); }
+  public static bool IsOwned(long handle) { return GetProp(new IntPtr(handle), OwnerKey) == new IntPtr(1); }
   public static bool Move(long handle, int x, int y, int w, int h) {
     var hwnd=new IntPtr(handle);
     if (IsZoomed(hwnd)) ShowWindowAsync(hwnd, 9); // restore new maximized window
@@ -77,6 +103,40 @@ if ($Mode -eq "snapshot") {
   exit 0
 }
 
+function Get-QuarterSlots($work) {
+  $halfW = [int][Math]::Floor($work.Width / 2)
+  $halfH = [int][Math]::Floor($work.Height / 2)
+  if ($halfW -lt 480 -or $halfH -lt 280) { return @() }
+  return @(
+    @{name="top_right"; left=($work.Left+$halfW); top=$work.Top; right=$work.Right; bottom=($work.Top+$halfH)},
+    @{name="top_left"; left=$work.Left; top=$work.Top; right=($work.Left+$halfW); bottom=($work.Top+$halfH)},
+    @{name="bottom_right"; left=($work.Left+$halfW); top=($work.Top+$halfH); right=$work.Right; bottom=$work.Bottom},
+    @{name="bottom_left"; left=$work.Left; top=($work.Top+$halfH); right=($work.Left+$halfW); bottom=$work.Bottom}
+  )
+}
+function Test-QuarterAligned($window, $slots) {
+  foreach ($slot in $slots) {
+    if ([Math]::Abs($window.Left-$slot.left) -le 24 -and [Math]::Abs($window.Top-$slot.top) -le 24 -and
+        [Math]::Abs($window.Right-$slot.right) -le 24 -and [Math]::Abs($window.Bottom-$slot.bottom) -le 24) { return $true }
+  }
+  return $false
+}
+function Select-Quarter($slots, $obstacles) {
+  $best=$null
+  $bestCoverage=[double]::PositiveInfinity
+  foreach ($slot in $slots) {
+    $area=($slot.right-$slot.left)*($slot.bottom-$slot.top)
+    $occupied=0.0
+    foreach ($window in $obstacles) { $occupied += Intersect-Area $slot $window }
+    $coverage=$occupied / $area
+    if ($coverage -lt $bestCoverage - 0.0000001) { $bestCoverage=$coverage; $best=$slot }
+  }
+  return @{slot=$best; coverage=$bestCoverage}
+}
+function New-WindowBounds($original, $slot) {
+  return @{ Handle=$original.Handle; ProcessId=$original.ProcessId;
+    Left=[int]$slot.left; Top=[int]$slot.top; Right=[int]$slot.right; Bottom=[int]$slot.bottom }
+}
 function Invoke-OwnedWindowPlacement {
 # For other Agent-owned GUI apps, launch and place in one call without a new MCP tool.
 if ($Mode -eq "launch") {
@@ -85,13 +145,24 @@ if ($Mode -eq "launch") {
   $KnownHandles = (@(Get-TargetWindows | ForEach-Object { $_.Handle }) -join ",")
   $launchArgs = @{ FilePath = $Executable; PassThru = $true }
   if (-not [string]::IsNullOrWhiteSpace($Arguments)) { $launchArgs.ArgumentList = $Arguments }
+  # Preflight BEFORE spawning: otherwise a rejected placement still leaves a visible new window.
+  $preScreen = [System.Windows.Forms.Screen]::PrimaryScreen
+  $preSlots = @(Get-QuarterSlots $preScreen.WorkingArea)
+  if ($preSlots.Count -ne 4) { throw "GUI launch blocked: display too small for quarter-screen placement" }
+  $preObstacles = @([MouseHolePlacementNative]::List() | Where-Object {
+    $_.ProcessId -notin @(Get-Process -Name TextInputHost,ShellExperienceHost,StartMenuExperienceHost,SearchHost -ErrorAction SilentlyContinue | ForEach-Object { [uint32]$_.Id })
+  })
+  $preChoice = Select-Quarter $preSlots $preObstacles
+  if ($null -eq $preChoice.slot -or $preChoice.coverage -gt 0.05) {
+    throw "GUI launch blocked: no free quadrant; refusing to stack on existing windows"
+  }
   $started = Start-Process @launchArgs
   $ExpectedPid = $started.Id
 }
 if ($Mode -eq "place" -and $ExpectedPid -le 0) { throw "ExpectedPid is required to prove new window ownership" }
-# Keep 2026-10-13 quadrant layout as an opt-in for foreground launches.
-# The default is to avoid rearranging the user's desktop.
-if ($env:MOUSE_HOLE_GUI_LAYOUT -ne 'quadrant') {
+# 2026-10-20 user default: new Agent-owned foreground GUI uses free quarter-screen placement.
+# Only explicit MOUSE_HOLE_GUI_LAYOUT=off disables it; existing windows remain untouched.
+if ($env:MOUSE_HOLE_GUI_LAYOUT -eq 'off') {
   @{ok=$true; placed=$false; launched_pid=$ExpectedPid; reason="layout_disabled"} | ConvertTo-Json -Compress
   return
 }
@@ -100,55 +171,83 @@ foreach ($value in $KnownHandles.Split(",")) {
   $parsed = [long]0
   if ([long]::TryParse($value, [ref]$parsed)) { [void]$known.Add($parsed) }
 }
-$deadline = [DateTime]::UtcNow.AddMilliseconds($WaitMs)
-$candidates = @()
-do {
-  $candidates = @(Get-TargetWindows | Where-Object { -not $known.Contains([long]$_.Handle) -and ($ExpectedPid -le 0 -or $_.ProcessId -eq $ExpectedPid) })
-  if ($candidates.Count -gt 0 -or [DateTime]::UtcNow -ge $deadline) { break }
-  Start-Sleep -Milliseconds 120
-} while ($true)
-
+if ($Mode -eq "reconcile") {
+  # Reconcile only a previously tagged live Mice Hole-owned window with verified PID.
+  if ($ExpectedPid -le 0) { throw "ExpectedPid is required for reconcile" }
+  $candidates = @(Get-TargetWindows | Where-Object {
+    $_.ProcessId -eq $ExpectedPid -and [MouseHolePlacementNative]::IsOwned([long]$_.Handle)
+  })
+} else {
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($WaitMs)
+  $candidates = @()
+  do {
+    $candidates = @(Get-TargetWindows | Where-Object {
+      -not $known.Contains([long]$_.Handle) -and ($ExpectedPid -le 0 -or $_.ProcessId -eq $ExpectedPid)
+    })
+    if ($candidates.Count -gt 0 -or [DateTime]::UtcNow -ge $deadline) { break }
+    Start-Sleep -Milliseconds 120
+  } while ($true)
+}
 if ($candidates.Count -ne 1) {
-  @{ok=$true; placed=$false; launched_pid=$ExpectedPid; reason=$(if ($candidates.Count -eq 0) {"no_new_window"} else {"ambiguous_new_windows"})} | ConvertTo-Json -Compress
+  $reason = if ($Mode -eq "reconcile") {
+    if ($candidates.Count -eq 0) {"not_owned_or_not_found"} else {"ambiguous_owned_windows"}
+  } elseif ($candidates.Count -eq 0) {"no_new_window"} else {"ambiguous_new_windows"}
+  @{ok=$true; placed=$false; launched_pid=$ExpectedPid; reason=$reason} | ConvertTo-Json -Compress
   return
 }
 $target = $candidates[0]
 $screen = [System.Windows.Forms.Screen]::FromHandle([IntPtr]$target.Handle)
-$work = $screen.WorkingArea
-$halfW = [int][Math]::Floor($work.Width / 2)
-$halfH = [int][Math]::Floor($work.Height / 2)
-if ($halfW -lt 480 -or $halfH -lt 280) {
+$slots = @(Get-QuarterSlots $screen.WorkingArea)
+if ($slots.Count -ne 4) {
   @{ok=$true; placed=$false; launched_pid=$ExpectedPid; reason="quadrant_too_small"} | ConvertTo-Json -Compress
   return
 }
-$slots = @(
-  @{name="top_left"; left=$work.Left; top=$work.Top; right=($work.Left+$halfW); bottom=($work.Top+$halfH)},
-  @{name="top_right"; left=($work.Left+$halfW); top=$work.Top; right=$work.Right; bottom=($work.Top+$halfH)},
-  @{name="bottom_left"; left=$work.Left; top=($work.Top+$halfH); right=($work.Left+$halfW); bottom=$work.Bottom},
-  @{name="bottom_right"; left=($work.Left+$halfW); top=($work.Top+$halfH); right=$work.Right; bottom=$work.Bottom}
-)
 $systemOverlayPids = @(Get-Process -Name TextInputHost,ShellExperienceHost,StartMenuExperienceHost,SearchHost -ErrorAction SilentlyContinue | ForEach-Object { [uint32]$_.Id })
-$others = @([MouseHolePlacementNative]::List() | Where-Object { $_.Handle -ne $target.Handle -and $systemOverlayPids -notcontains $_.ProcessId })
-$best = $null
-$bestCoverage = [double]::PositiveInfinity
-foreach ($slot in $slots) {
-  $area = ($slot.right-$slot.left)*($slot.bottom-$slot.top)
-  $occupied = 0.0
-  foreach ($window in $others) { $occupied += Intersect-Area $slot $window }
-  $coverage = $occupied / $area
-  if ($coverage -lt $bestCoverage) { $bestCoverage=$coverage; $best=$slot }
+$others = @([MouseHolePlacementNative]::List() | Where-Object {
+  $_.Handle -ne $target.Handle -and $systemOverlayPids -notcontains $_.ProcessId
+})
+# Earlier tagged Mice Hole windows centered across quadrants must not block all slots.
+# Reflow only tagged windows on same display, never untagged user or other-Agent windows.
+$irregular = @($others | Where-Object {
+  [MouseHolePlacementNative]::IsOwned([long]$_.Handle) -and
+  [System.Windows.Forms.Screen]::FromHandle([IntPtr]$_.Handle).DeviceName -eq $screen.DeviceName -and
+  -not (Test-QuarterAligned $_ $slots)
+})
+$reflowHandles = [Collections.Generic.HashSet[long]]::new()
+foreach ($window in $irregular) { [void]$reflowHandles.Add([long]$window.Handle) }
+$fixed = [Collections.Generic.List[object]]::new()
+foreach ($window in $others) {
+  if (-not $reflowHandles.Contains([long]$window.Handle)) { $fixed.Add($window) }
 }
-# Four occupied quadrants: leave the new window exactly where Windows placed it.
-if ($bestCoverage -gt 0.12) {
-  @{ok=$true; placed=$false; launched_pid=$ExpectedPid; reason="no_free_quadrant"} | ConvertTo-Json -Compress
+$reflowed = 0
+foreach ($window in $irregular) {
+  $selection = Select-Quarter $slots $fixed
+  if ($null -ne $selection.slot -and $selection.coverage -le 0.05 -and [MouseHolePlacementNative]::Move([long]$window.Handle,
+      [int]$selection.slot.left, [int]$selection.slot.top,
+      [int]($selection.slot.right-$selection.slot.left), [int]($selection.slot.bottom-$selection.slot.top))) {
+    $fixed.Add((New-WindowBounds $window $selection.slot))
+    $reflowed++
+  } else { $fixed.Add($window) }
+}
+$choice = Select-Quarter $slots $fixed
+$best = $choice.slot
+if ($null -eq $best -or $choice.coverage -gt 0.05) {
+  @{ok=$true; placed=$false; launched_pid=$ExpectedPid; reason="no_free_quadrant_overlap_refused"} | ConvertTo-Json -Compress
   return
 }
 $width = [int]($best.right-$best.left)
 $height = [int]($best.bottom-$best.top)
-if (-not [MouseHolePlacementNative]::Move($target.Handle,[int]$best.left,[int]$best.top,$width,$height)) {
+if (-not [MouseHolePlacementNative]::Move([long]$target.Handle,[int]$best.left,[int]$best.top,$width,$height)) {
   throw "SetWindowPos failed; existing windows were left untouched"
 }
-@{ok=$true; placed=$true; slot=$best.name; window_handle=$target.Handle; bounds=@{x=$best.left;y=$best.top;width=$width;height=$height}; launched_pid=$ExpectedPid} | ConvertTo-Json -Depth 4 -Compress
+$marked = [MouseHolePlacementNative]::IsOwned([long]$target.Handle) -or
+  [MouseHolePlacementNative]::MarkOwned([long]$target.Handle)
+# No occupied-quadrant stacking: moves above require <= 5% coverage.
+@{ok=$true; placed=$true; slot=$best.name; window_handle=$target.Handle;
+  bounds=@{x=$best.left;y=$best.top;width=$width;height=$height};
+  launched_pid=$ExpectedPid; owner_marked=[bool]$marked;
+  reflowed_owned_windows=$reflowed; overlap_unavoidable=($choice.coverage -gt 0.12);
+  coverage_before=[Math]::Round([double]$choice.coverage,4)} | ConvertTo-Json -Depth 4 -Compress
 }
 # A cross-process mutex serializes launches from distinct Agent/plugin sessions.
 # The mutex covers the snapshot, spawn, occupancy check and placement.

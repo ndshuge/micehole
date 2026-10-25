@@ -31,9 +31,9 @@ New-Item -ItemType Directory -Force -Path $localCfg|Out-Null
 Set-Content -LiteralPath (Join-Path $localCfg 'workspace.txt') -Value $Workspace -Encoding ASCII
 $cmd=Join-Path $base 'micehole-direct.cmd'
 $env:MOUSE_HOLE_WORKSPACE=$Workspace
-$init='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
-$response=$init | & $node.Source (Join-Path $base 'mcp\remote\mouse-hole-server.mjs') | Select-Object -First 1 | ConvertFrom-Json
-if($response.result.tools.Count -ne 12){throw ('Expected 12 tools, got '+$response.result.tools.Count)}
+. (Join-Path $base 'scripts\mcp-stdio-probe.ps1')
+$response=Invoke-MiceHoleToolsProbe -NodePath $node.Source -ServerPath (Join-Path $base 'mcp\remote\mouse-hole-server.mjs')
+if($response.result.tools.Count -ne 15){throw ('Expected 15 tools, got '+$response.result.tools.Count)}
 $python=Get-Command python.exe -ErrorAction SilentlyContinue
 Write-Output "MICEHOLE_SETUP_OK=true"
 Write-Output "NODE=$($node.Source)"
