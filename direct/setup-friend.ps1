@@ -31,16 +31,8 @@ New-Item -ItemType Directory -Force -Path $localCfg|Out-Null
 Set-Content -LiteralPath (Join-Path $localCfg 'workspace.txt') -Value $Workspace -Encoding ASCII
 $cmd=Join-Path $base 'micehole-direct.cmd'
 $env:MOUSE_HOLE_WORKSPACE=$Workspace
-$init='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
-$raw=@($init | & $node.Source (Join-Path $base 'mcp\remote\mouse-hole-server.mjs') 2>&1)
-$toolProcessExit=$LASTEXITCODE
-$reply=@($raw | Where-Object { $_.ToString().TrimStart().StartsWith('{"jsonrpc"') } | Select-Object -First 1)
-if($toolProcessExit -ne 0 -or $reply.Count -eq 0){
-  $diagnostic=(@($raw | Select-Object -Last 3) -join '; ')
-  throw "MCP tool probe failed (exit=$toolProcessExit): $diagnostic"
-}
-$response=$reply[0].ToString() | ConvertFrom-Json
-if($response.error){throw ('MCP returned error: '+($response.error | ConvertTo-Json -Compress))}
+. (Join-Path $base 'scripts\mcp-stdio-probe.ps1')
+$response=Invoke-MiceHoleToolsProbe -NodePath $node.Source -ServerPath (Join-Path $base 'mcp\remote\mouse-hole-server.mjs')
 if($response.result.tools.Count -ne 15){throw ('Expected 15 tools, got '+$response.result.tools.Count)}
 $python=Get-Command python.exe -ErrorAction SilentlyContinue
 Write-Output "MICEHOLE_SETUP_OK=true"

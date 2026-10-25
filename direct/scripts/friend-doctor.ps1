@@ -10,8 +10,13 @@ $tools=@()
 if($node){
   $env:MOUSE_HOLE_WORKSPACE=$ws
   if(-not(Test-Path $ws)){New-Item -ItemType Directory -Force $ws|Out-Null}
-  $line='{"jsonrpc":"2.0","id":4,"method":"tools/list","params":{}}'
-  try{$tools=@(($line| & $node.Source (Join-Path $base 'mcp\remote\mouse-hole-server.mjs') | Select-Object -First 1 | ConvertFrom-Json).result.tools | ForEach-Object name)}catch{}
+  . (Join-Path $PSScriptRoot 'mcp-stdio-probe.ps1')
+  try{
+    $response=Invoke-MiceHoleToolsProbe -NodePath $node.Source -ServerPath (Join-Path $base 'mcp\remote\mouse-hole-server.mjs')
+    $tools=@($response.result.tools | ForEach-Object name)
+  }catch{
+    $probeError=$_.Exception.Message
+  }
 }
 $report=[ordered]@{
   installer_root=$base
