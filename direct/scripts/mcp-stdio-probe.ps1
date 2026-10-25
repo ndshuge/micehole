@@ -24,7 +24,8 @@ function Invoke-MiceHoleToolsProbe {
     $data=[System.Text.Encoding]::UTF8.GetBytes($request)
     $process.StandardInput.BaseStream.Write($data,0,$data.Length)
     $process.StandardInput.BaseStream.Flush()
-    $process.StandardInput.Close()
+    # Close the raw byte stream; closing the StreamWriter can append its encoding preamble.
+    $process.StandardInput.BaseStream.Close()
     $stdout=$process.StandardOutput.ReadToEnd()
     $stderr=$process.StandardError.ReadToEnd()
     if(-not $process.WaitForExit(10000)){
