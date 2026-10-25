@@ -1,7 +1,9 @@
 <div align="center">
 
 # 🐭 MiceHole V3
-### Codex 额度消耗太快？让 ChatGPT 对话模式承担高频本机施工
+### 手机告诉 ChatGPT 要做什么，它在你的 Windows 电脑上真正动手
+
+**远程写代码、运行测试，也能成为检查 VS Code 作业的编程老师。**
 
 **ChatGPT 负责决策，MiceHole 是操作 Windows 的“手”。** 复用已获授权的 ChatGPT 对话模型，无需额外对接编码大模型 API；实际可用工具、模型及额度均取决于账号权限。
 
@@ -21,6 +23,7 @@
 
 | 你想做什么 | 推荐入口 |
 | --- | --- |
+| **手机上让 GPT 辅导电脑里的代码** | [VS Code / Python 教学实战](docs/PHONE-VSCODE-TUTOR.zh-CN.md) |
 | **下载并验证** | [V3 Windows Release](https://github.com/ndshuge/micehole/releases/tag/v3.0.1) · [中文安装指南](docs/INSTALL-V3.zh-CN.md) |
 | **确认能否在自己电脑上用** | [当前验收范围](docs/V3-DIRECT.md) · [安全说明](docs/SECURITY.md) |
 | **理解执行链路** | [技术架构](docs/ARCHITECTURE-V3.md) · [为什么做 MiceHole](docs/WHY-MICEHOLE.md) |
@@ -38,6 +41,20 @@
 - **不绕过 OpenAI 账户安全规则**：仅在用户账户支持自定义 MCP，并由电脑主人明确授权的情况下使用；这扩展了普通聊天的能力，不是破解 OpenAI 的工具限制或免费解锁官方 Codex。
 
 **一句话定位：用 ChatGPT 对话模式驱动本机远程编程，不再为每次施工额外接一个编码模型 API——实现类似远程 Codex 的工作流。**
+## 手机里的 ChatGPT，也能检查电脑上 VS Code 的真实作业
+
+你可以在手机里说：
+
+> 请做我的 Python 老师。用 MiceHole **只读检查**我指定的作业文件，先出一道题，不要替我改。等我在电脑上用 VS Code 改完，运行指定程序，读取真实报错和输出，再逐步批改并出一题变式。
+
+**工作方式：** 手机 ChatGPT 发问 → 用户授权 MCP → 电脑读取指定项目 → GPT 出题和讲解 → 学生在 VS Code 亲自修改 → 经许可运行 Python → 根据真实测试结果批改。一般无需“控制 VS Code 窗口”：通过文件与命令操作相同的项目目录更稳定；GUI 前台操作则需要额外授权和安全条件。
+
+除了学习编程，还适合手机远程维护小型网页、读取日志排查问题、审查 Git 改动以及根据项目 Markdown 状态恢复工作。MiceHole 是工具桥，不是另一个 Agent，也不会增加 ChatGPT/Codex 额度。
+
+**[查看完整手机 × VS Code 教学实例、可复制提示词与验收清单](docs/PHONE-VSCODE-TUTOR.zh-CN.md)**
+
+> **版本边界：** 上述为在设备、账号与权限满足条件下的使用流程，不代表所有用户的手机端远程高权限均已验收。GitHub v3.0.1 Release 仍以 12 项工具及其公开说明为准；开发机实验性浏览器隔离、GUI V6 和 3D 专用工具不能视为 Release 已交付。
+
 ## 一张图看懂它
 
 ```mermaid
@@ -134,6 +151,7 @@ ChatGPT 突然连不上 MiceHole？**先检查代理、网络和 Tunnel，再决
 
 | 想了解什么 | 从这里开始 |
 |---|---|
+| 手机远程 VS Code 项目、Python 教学、作业批改 | [手机编程老师完整指南](docs/PHONE-VSCODE-TUTOR.zh-CN.md) |
 | 背景、优势、与 Codex 的差别 | [为什么做 MiceHole](docs/WHY-MICEHOLE.md) |
 | 新手从零安装、电脑/ChatGPT 两端步骤 | [Windows 详细安装指南](docs/INSTALL-V3.zh-CN.md) |
 | MCP、Tunnel、stdio、执行链路 | [技术架构](docs/ARCHITECTURE-V3.md) |
