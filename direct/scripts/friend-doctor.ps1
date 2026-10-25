@@ -19,11 +19,11 @@ $report=[ordered]@{
   node_available=[bool]$node
   python_available=[bool]$python
   tools_count=$tools.Count
-  desired_tool_count=12
-  excluded_apps_absent=(@($tools|Where-Object{$_ -match 'godot|blender|comfyui'}).Count -eq 0)
+  desired_tool_count=15
+  specialized_tools_present=(@($tools|Where-Object{$_ -match 'godot|blender|comfyui'}).Count -eq 3)
   tunnel_client_available=(Test-Path (Join-Path $base 'tunnel-client\tunnel-client.exe'))
   personal_tunnel_id_configured=(Test-Path (Join-Path $env:LOCALAPPDATA 'MiceHoleV3\remote\settings.json'))
-  local_ready=([bool]$node -and $tools.Count -eq 12)
+  local_ready=([bool]$node -and $tools.Count -eq 15)
   remote_high_privilege_verified=$false
 }
 [pscustomobject]$report|ConvertTo-Json -Depth 3
