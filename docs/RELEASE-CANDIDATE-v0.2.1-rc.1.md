@@ -15,6 +15,7 @@ This candidate packages a local Windows Direct MCP server for disposable test pr
 - Syntax and module import checks
 - MCP initialize and tools/list in a separate directory
 - Disposable-directory status, file-write and project memory tests
+- Extracted ZIP first-run setup and Friend Doctor (15 tools, local_ready=true, remote_verified=false)
 - Remote entry guard: unapproved connection denied; approved test advertises 15 tools
 - Portable ZIP built, extracted, and executed; 15 tools discovered
 - ZIP SHA256 generated and rechecked; 69 packaged paths; no sensitive-path filenames matched by pattern scan
@@ -33,3 +34,6 @@ See the attached `MiceHole-Direct-vNext-0.2.1-RC-SHA256SUMS.txt`. Verify the ZIP
 
 ## Download / installation note
 The archive is for source review and isolated local stdio experiments only. Use the stable v3.0.1 release for the existing documented experience. Do not expose any unauthenticated TCP shell or run elevated.
+
+## Repeatable developer RC gate
+Run powershell -NoProfile -File scripts/vnext-rc-gate.ps1 from the repository to re-run local checks and rebuild the candidate. This checks local semantics only; the returned verified=true is NOT a remote-security release approval.

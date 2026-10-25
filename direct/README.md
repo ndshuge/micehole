@@ -1,6 +1,6 @@
 # MiceHole Direct V3 — portable high-privilege edition (engineering preview)
 
-This is a portable snapshot of the author's actual Mouse Hole direct-stdio server with three specialized tools included: Godot, Blender and ComfyUI. The advertised MCP tools are status, read, write, patch, search, run, process, git, validate, browser, observe and GUI (15 total).
+This is a portable snapshot of the author's actual Mouse Hole direct-stdio server with three specialized tools included: Godot, Blender and ComfyUI. The advertised MCP tools are status, read, write, patch, search, run, process, git, validate, Blender, Godot, ComfyUI, browser, observe and GUI (15 total).
 
 ## Per-computer setup (Windows)
 1. Install current Node.js; Python and a supported browser may be required by certain GUI/browser features.
