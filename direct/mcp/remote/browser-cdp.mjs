@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { browserRuntimePolicy, acquireBrowserProfile, assertBrowserActionAllowed } from "./browser-runtime-policy.mjs";
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -14,7 +15,7 @@ function wsClient(url) {
     ws.onopen = () => {
       clearTimeout(timer);
       resolve({
-        async call(method, params = {}, timeoutMs = 10000) {
+        async call(method, params = {}, timeoutMs = 10000, sessionId = null) {
           const id = seq++;
           return new Promise((res, rej) => {
             const t = setTimeout(() => {
@@ -22,7 +23,7 @@ function wsClient(url) {
               rej(new Error(`CDP timeout: ${method}`));
             }, timeoutMs);
             pending.set(id, { res, rej, t });
-            ws.send(JSON.stringify({ id, method, params }));
+            ws.send(JSON.stringify({ id, method, params, ...(sessionId ? {sessionId} : {}) }));
           });
         },
         close() {
@@ -99,22 +100,137 @@ process.once("exit", () => {
 });
 async function destroySession(session) {
   clearTimeout(session.idleTimer);
-  try { session.page?.close(); } catch {}
-  if (session.child) await closeBrowser(session.child, session.browserWsUrl);
-  try { fs.rmSync(session.runDir, { recursive: true, force: true }); } catch {}
+  if (session.attached || session.shared) {
+    // Never export cookies, close the external browser, or touch the user's original tab.
+    try { session.page?.close(); } catch {}
+    if (session.shared) {
+      try {
+        const closed=await session.browser.call("Target.closeTarget",{targetId:session.targetId},3000);
+        if (closed.success!==true) throw new Error("Owned hidden Edge target could not be closed");
+      } finally {session.browser.close();}
+    }
+    return;
+  }
+  try {
+    try { await session.page?.call("Network.flushBrowserCookies", {}, 3000); } catch {}
+    try { session.page?.close(); } catch {}
+    if (session.child) await closeBrowser(session.child, session.browserWsUrl);
+  } finally {
+    try { fs.rmSync(session.runDir, { recursive: true, force: true }); } catch {}
+    session.profileLock?.release();
+  }
 }
-async function createSession({root,browserBin,width,height}) {
+export async function browserAttachedStatus(root, url) {
+  const policy = browserRuntimePolicy(root, url);
+  if (!["attached","shared"].includes(policy.mode)) return {mode:policy.mode,ready:false,reason:"not_configured"};
+  if (!policy.attachPort) return {mode:policy.mode,ready:false,reason:"edge_debugging_not_enabled"};
+  try {
+    const endpoint = "http://127.0.0.1:" + policy.attachPort;
+    const response = await fetch(endpoint + "/json/version",{signal:AbortSignal.timeout(2000)});
+    if (!response.ok) return {mode:"attached",ready:false,reason:"cdp_unavailable"};
+    const version = await response.json();
+    if (!String(version.Browser || "").startsWith("Edg/")) return {mode:"attached",ready:false,reason:"not_edge"};
+    const pagesResp = await fetch(endpoint + "/json/list",{signal:AbortSignal.timeout(2000)});
+    if (!pagesResp.ok) return {mode:"attached",ready:false,reason:"cdp_unavailable"};
+    const targets = await pagesResp.json();
+    if (policy.mode === "shared") return {mode:"shared",ready:true,reason:"ready"};
+    const matches = targets.filter(t=>t.type==="page" && t.url===url);
+    return {mode:"attached",ready:matches.length===1,reason:matches.length===1?"ready":"matching_tab_missing_or_ambiguous"};
+  } catch {return {mode:"attached",ready:false,reason:"cdp_unavailable"};}
+}
+
+async function createAttachedSession({policy,url}) {
+  // Explicit opt-in: connect only to an already open Edge tab at the exact URL.
+  const port = policy.attachPort;
+  if (!port) throw new Error("Edge debugging not enabled or its local port is unavailable");
+  const base = "http://127.0.0.1:" + port;
+  const fetchLocal = async suffix => {
+    const response = await fetch(base + suffix, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) throw new Error("Local Edge CDP endpoint unavailable");
+    return response.json();
+  };
+  const version = await fetchLocal("/json/version");
+  if (!String(version.Browser || "").startsWith("Edg/")) throw new Error("Attached CDP endpoint is not Microsoft Edge");
+  const targets = await fetchLocal("/json/list");
+  const matches = targets.filter(t => t.type === "page" && t.url === url && t.webSocketDebuggerUrl);
+  if (matches.length !== 1) throw new Error("Expected exactly one open Edge tab matching the requested URL; no tab was changed");
+  const targetWs = new URL(matches[0].webSocketDebuggerUrl);
+  if (targetWs.protocol !== "ws:" || !["127.0.0.1", "localhost"].includes(targetWs.hostname) ||
+      Number(targetWs.port) !== port || !targetWs.pathname.startsWith("/devtools/page/")) {
+    throw new Error("Unsafe Edge CDP page endpoint");
+  }
+  const page = await wsClient(targetWs.href);
+  try {
+    await page.call("Runtime.enable");
+    // A guard in navigate() prevents moving an existing user tab to another URL.
+    page.__miceAttached = true;
+    page.__miceLastUrl = url;
+    return { attached:true, attachedUrl:url, page, port, version, inflight:0,
+      idleTimer:null, tail:Promise.resolve(), healthy:true };
+  } catch (error) { page.close(); throw error; }
+}
+
+async function createSharedEdgeSession({policy,url}) {
+  // Browser-context sharing: no cookie or token extraction. The user owns the Edge instance.
+  const port=policy.attachPort;
+  if (!port) throw new Error("Edge remote debugging must be enabled by the user before sharing its session");
+  const base="http://127.0.0.1:"+port;
+  const request=async suffix => {
+    const response=await fetch(base+suffix,{signal:AbortSignal.timeout(3000)});
+    if (!response.ok) throw new Error("Local Edge CDP unavailable");
+    return response.json();
+  };
+  const version=await request("/json/version");
+  if (!String(version.Browser||"").startsWith("Edg/")) throw new Error("CDP endpoint is not Microsoft Edge");
+  const wsUrl=new URL(version.webSocketDebuggerUrl || "");
+  if (wsUrl.protocol!=="ws:" || !["127.0.0.1","localhost"].includes(wsUrl.hostname) ||
+      Number(wsUrl.port)!==port || !wsUrl.pathname.startsWith("/devtools/browser/")) {
+    throw new Error("Unsafe browser debugger endpoint");
+  }
+  const browser=await wsClient(wsUrl.href);
+  let page=null,targetId=null;
+  try {
+    // Hidden targets cannot steal focus; failure must NOT fall back to a visible tab.
+    const created=await browser.call("Target.createTarget",
+      {url:"about:blank",hidden:true,background:true},8000);
+    targetId=created.targetId;
+    if (!targetId) throw new Error("Edge did not return a hidden target");
+    // Hidden targets are intentionally not listed on the public /json/list endpoint.
+    // CDP's flattened target session can drive them entirely within the browser socket.
+    const attached=await browser.call("Target.attachToTarget",{targetId,flatten:true},8000);
+    if (!attached.sessionId) throw new Error("Hidden target did not grant a CDP session");
+    const sessionId=attached.sessionId;
+    page={call:(method,params={},timeoutMs=10000)=>browser.call(method,params,timeoutMs,sessionId),close:()=>{}};
+    await page.call("Page.enable");
+    await page.call("Runtime.enable");
+    return {shared:true,attachedUrl:url,page,browser,targetId,port,version,
+      idleTimer:null,inflight:0,tail:Promise.resolve(),healthy:true};
+  } catch(error) {
+    try {page?.close()}catch{}
+    if(targetId) try {await browser.call("Target.closeTarget",{targetId},3000)}catch{}
+    browser.close();
+    throw error;
+  }
+}
+
+async function createSession({root,browserBin,width,height,policy}) {
   const runsRoot = path.join(root, "work", "bridge", "browser-runs");
   fs.mkdirSync(runsRoot,{recursive:true});
   const runDir=fs.mkdtempSync(path.join(runsRoot,"run-"));
-  const profile=path.join(runDir,"profile");
-  fs.mkdirSync(profile,{recursive:true});
+  const profile=["persistent","automation"].includes(policy.mode) ? policy.profileDir : path.join(runDir,"profile");
+  let profileLock=null;
   let child=null,page=null,browserWsUrl=null,stderr="";
   try {
+    profileLock=acquireBrowserProfile(policy);
+    fs.mkdirSync(profile,{recursive:true,mode:0o700});
+    if (profileLock) {
+      try { fs.rmSync(path.join(profile,"DevToolsActivePort"), { force: true }); } catch {}
+    }
     child=spawn(browserBin, [
       "--headless=new","--disable-gpu","--hide-scrollbars","--no-first-run",
       "--disable-first-run-ui","--disable-background-networking","--disable-component-update",
       "--window-size="+width+","+height,"--user-data-dir="+profile,
+      ...(policy.proxyServer ? ["--proxy-server="+policy.proxyServer] : []),
       "--remote-debugging-port=0","about:blank"
     ],{windowsHide:true,stdio:["ignore","ignore","pipe"]});
     child.stderr.on("data",chunk=>{if(stderr.length<20000)stderr+=chunk.toString("utf8")});
@@ -129,26 +245,34 @@ async function createSession({root,browserBin,width,height}) {
     await page.call("Page.enable");
     await page.call("Runtime.enable");
     await page.call("Emulation.setDeviceMetricsOverride",{width,height,deviceScaleFactor:1,mobile:false});
-    return {root,runDir,child,page,browserWsUrl,port,version,stderr,idleTimer:null,inflight:0,tail:Promise.resolve(),healthy:true};
+    return {root,runDir,child,page,browserWsUrl,port,version,stderr,profileLock,idleTimer:null,inflight:0,tail:Promise.resolve(),healthy:true};
   } catch(error) {
-    if(page)page.close();
-    if(child)await closeBrowser(child,browserWsUrl);
-    fs.rmSync(runDir,{recursive:true,force:true});
+    try {
+      if(page)page.close();
+      if(child)await closeBrowser(child,browserWsUrl);
+    } finally {
+      fs.rmSync(runDir,{recursive:true,force:true});
+      profileLock?.release();
+    }
     throw error;
   }
 }
 async function withBrowser({root,browserBin,url,width=1440,height=1000,reuseSession=false},fn){
+  const policy=browserRuntimePolicy(root,url);
+  const start = () => policy.mode === "attached" ? createAttachedSession({policy,url}) :
+    policy.mode === "shared" ? createSharedEdgeSession({policy,url}) :
+    createSession({root,browserBin,width,height,policy});
   if(!reuseSession){
-    const once=await createSession({root,browserBin,width,height});
+    const once=await start();
     try{return await fn(once.page,{port:once.port,version:once.version,stderr:once.stderr})}
     finally{await destroySession(once)}
   }
-  const origin=new URL(url).origin;
-  const key=JSON.stringify([root,browserBin,origin,width,height]);
+  const key=JSON.stringify([root,browserBin,policy.origin,policy.mode,policy.attachPort,policy.proxyMode,policy.proxyServer,
+    ...(policy.mode === "attached" ? [url] : ["persistent","automation"].includes(policy.mode) ? [] : [width,height])]);
   let slot=browserSessions.get(key);
   if(!slot){
     slot={session:null,pending:null};
-    slot.pending=createSession({root,browserBin,width,height}).then(session=>{slot.session=session;return session});
+    slot.pending=start().then(session=>{slot.session=session;return session});
     browserSessions.set(key,slot);
     slot.pending.catch(()=>{if(browserSessions.get(key)===slot)browserSessions.delete(key)});
   }
@@ -161,6 +285,9 @@ async function withBrowser({root,browserBin,url,width=1440,height=1000,reuseSess
   await previous;
   try{
     if(!session.healthy)throw Error("Browser session invalidated; retry");
+    if (["persistent","automation"].includes(policy.mode)) {
+      await session.page.call("Emulation.setDeviceMetricsOverride", {width,height,deviceScaleFactor:1,mobile:false});
+    }
     return await fn(session.page,{port:session.port,version:session.version,stderr:session.stderr});
   } catch(error){
     session.healthy=false;
@@ -194,6 +321,15 @@ export async function closeBrowserSessions() {
 }
 
 async function navigate(page, url) {
+  if (page.__miceAttached) {
+    // A target may be enumerated before its execution context is ready.
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const current = await page.call("Runtime.evaluate", { expression:"location.href", returnByValue:true });
+      if (current.result?.value === url) return;
+      await sleep(100);
+    }
+    throw new Error("Attached Edge tab changed or its page is unavailable; navigation refused");
+  }
   if (page.__miceLastUrl === url) {
     const check = await page.call("Runtime.evaluate", { expression: "({href: location.href, ready: document.readyState})", returnByValue: true });
     if (check.result?.value?.href === url && ["complete","interactive"].includes(check.result.value.ready)) return;
@@ -282,10 +418,29 @@ export async function browserInspect({ root, browserBin, url, selector, waitMs =
   });
 }
 
+async function assertNonSensitiveElement(page, selector) {
+  const literal=JSON.stringify(selector);
+  const result=await page.call("Runtime.evaluate",{
+    expression:`(() => {
+      const el=document.querySelector(${literal});
+      if(!el) return false;
+      const semantics=[el.getAttribute("aria-label"),el.getAttribute("title"),el.id,el.getAttribute("name"),
+        (el.innerText || "").slice(0,120),el.closest("form")?.getAttribute("action"),el.getAttribute("href")].join(" ").toLowerCase();
+      const danger=/(?:delete|remove.account|transfer|pay.now|purchase|buy.now|checkout|security|billing|password|passkey|api.key|secret|two.factor|2fa|mfa|terminate|erase|revoke|unsubscribe)/i;
+      return !danger.test(semantics) && !["password","hidden"].includes(el.type) &&
+        !["submit"].includes((el.getAttribute("type")||"").toLowerCase());
+    })()`,
+    returnByValue:true
+  });
+  if(result.result?.value!==true) throw new Error("Sensitive or ambiguous browser control blocked");
+}
+
 export async function browserClick({ root, browserBin, url, selector, waitMs = 5000, reuseSession = false, verifiedFast = false }) {
+  assertBrowserActionAllowed(root,url);
   return withBrowser({ root, browserBin, url, reuseSession }, async page => {
     await navigate(page, url);
     await waitForSelector(page, selector, waitMs);
+    await assertNonSensitiveElement(page, selector);
     const literal = selectorLiteral(selector);
     await page.call("Runtime.evaluate", {
       expression: `(() => { const el = document.querySelector(${literal}); el.scrollIntoView({block:"center",inline:"center"}); el.click(); return true; })()`,
@@ -297,9 +452,11 @@ export async function browserClick({ root, browserBin, url, selector, waitMs = 5
 }
 
 export async function browserFill({ root, browserBin, url, selector, text, waitMs = 5000, reuseSession = false, verifiedFast = false }) {
+  assertBrowserActionAllowed(root,url);
   return withBrowser({ root, browserBin, url, reuseSession }, async page => {
     await navigate(page, url);
     await waitForSelector(page, selector, waitMs);
+    await assertNonSensitiveElement(page, selector);
     const literal = selectorLiteral(selector);
     const value = JSON.stringify(String(text ?? ""));
     await page.call("Runtime.evaluate", {
@@ -321,9 +478,11 @@ export async function browserFill({ root, browserBin, url, selector, text, waitM
 }
 
 export async function browserType({ root, browserBin, url, selector, text, waitMs = 5000, reuseSession = false }) {
+  assertBrowserActionAllowed(root,url);
   return withBrowser({ root, browserBin, url, reuseSession }, async page => {
     await navigate(page, url);
     await waitForSelector(page, selector, waitMs);
+    await assertNonSensitiveElement(page, selector);
     const literal = selectorLiteral(selector);
     await page.call("Runtime.evaluate", {
       expression: `(() => { const el = document.querySelector(${literal}); el.focus(); return true; })()`,

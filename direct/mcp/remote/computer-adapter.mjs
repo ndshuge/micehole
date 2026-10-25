@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { isDeniedPath } from "./bridge-core.mjs";
 import { updateJobByProcess } from "./job-core.mjs";
 
-const DC_ROOT = process.env.HANAKO_DESKTOP_COMMANDER_ROOT || path.join(process.env.MOUSE_HOLE_WORKSPACE || process.cwd(), "work", "desktop-commander-bridge");
+const DC_ROOT = process.env.HANAKO_DESKTOP_COMMANDER_ROOT || "E:\\CHATGPT\\work\\desktop-commander-bridge";
 const STATE_NAME = "computer-context-v1.json";
 let clientPromise;
 

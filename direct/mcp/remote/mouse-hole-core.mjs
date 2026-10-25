@@ -11,9 +11,10 @@ import { nativeSearch } from "./hybrid-search.mjs";
 import { isPreviewMediaPath, observePreview, observeCapturedPreview } from "./media-preview.mjs";
 import { isDeniedPath } from "./bridge-core.mjs";
 import { runAdapterAsync } from "./python-adapter-bridge.mjs";
-import { browserClick, browserDumpDom, browserFill, browserInspect, browserScreenshot, browserType } from "./browser-cdp.mjs";
+import { browserAttachedStatus, browserClick, browserDumpDom, browserFill, browserInspect, browserScreenshot, browserType } from "./browser-cdp.mjs";
+import { egoAvailable, egoTask } from "../../tools/mouse-hole/ego-hybrid-runtime.mjs";
 import { constructionCall, createConstructionContext, projectRuleEntry } from "./mouse-hole-construction-state.mjs";
-import { MICE_HOLE_VERSION } from "./mouse-hole-project-memory.mjs";
+import { MICE_HOLE_VERSION, MICE_HOLE_BUILD } from "./mouse-hole-project-memory.mjs";
 import { assertGuiPolicy, assertBrowserForegroundPolicy } from "./gui-background-policy.mjs";
 
 const MAX_OUTPUT = 12_000;
@@ -26,6 +27,7 @@ const EDGE_BIN = process.env.EDGE_BIN || "C:\\Program Files (x86)\\Microsoft\\Ed
 const BROWSER_BIN = fs.existsSync(EDGE_BIN) ? EDGE_BIN : null;
 const BROWSER_PROCESS_NAME = BROWSER_BIN ? path.basename(BROWSER_BIN, path.extname(BROWSER_BIN)) : null;
 const GUI_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-windows.ps1");
+const GUI_READONLY_STATUS_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-readonly-status.py");
 const GUI_WINDOW_CAPTURE_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-window-capture.ps1");
 
 function captureBackgroundWindow(root, title) {
@@ -57,7 +59,6 @@ function captureBackgroundWindow(root, title) {
     throw error;
   }
 }
-
 const GUI_PLACEMENT_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-placement.ps1");
 const GUI_NATIVE_BUTTON_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), "gui-native-button.py");
 const COMFYUI_URL = (process.env.COMFYUI_URL || "http://127.0.0.1:8188").replace(/\/+$/, "");
@@ -86,12 +87,12 @@ const applicationTools = [
   { name: "mouse_hole_blender", description: "Operate Blender headlessly with bpy", inputSchema: schema({ operation: { type: "string", enum: ["status", "inspect_blend", "mesh_stats", "inspect_glb", "normalize_mesh", "validate", "render_validation", "export_glb", "artifact_report", "batch"] }, blend: { type: "string" }, path: { type: "string" }, glb: { type: "string" }, output: { type: "string" }, target_size: { type: "number", minimum: 0.001, maximum: 10000 }, steps: { type: "array", maxItems: 8, items: { type: "object", properties: { operation: { type: "string", enum: ["normalize_mesh", "validate", "render_validation", "export_glb", "artifact_report"] }, output: { type: "string" }, target_size: { type: "number", minimum: 0.001, maximum: 10000 } }, required: ["operation"], additionalProperties: false } } }, ["operation"]), annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false } },
   { name: "mouse_hole_godot", description: "Validate, import, run and inspect a Godot project headlessly", inputSchema: schema({ operation: { type: "string", enum: ["project_status", "validate_project", "import_check", "test_scene", "run_scene", "read_errors", "capture_result"] }, project: { type: "string" }, cwd: { type: "string" }, scene: { type: "string" }, log_path: { type: "string" }, output: { type: "string" }, timeout_seconds: { type: "integer", minimum: 1, maximum: 600 } }, ["operation"]), annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false } },
   { name: "mouse_hole_comfyui", description: "Use ComfyUI status, workflow validation, generation and remote job handles", inputSchema: schema({ operation: { type: "string", enum: ["status", "workflow_validate", "generate", "job_status", "cancel", "output_resolve"] }, workflow: { type: "object", additionalProperties: true }, client_id: { type: "string" }, job_id: { type: "string" }, wait_ms: { type: "integer", minimum: 0, maximum: 30000 }, poll_interval_ms: { type: "integer", minimum: 100, maximum: 5000 } }, ["operation"]), annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true } },
-  { name: "mouse_hole_browser", description: "Control structured Chromium browsing with explicit foreground fallback for anti-bot/login pages", inputSchema: schema({ operation: { type: "string", enum: ["status", "dump_dom", "inspect", "click", "fill", "type", "screenshot", "open_foreground", "read_foreground_text"] }, url: { type: "string" }, selector: { type: "string" }, text: { type: "string" }, title: { type: "string", maxLength: 512 }, foreground_control: { type: "boolean" }, wait_ms: { type: "integer", minimum: 0, maximum: 30000 }, output_path: { type: "string" }, width: { type: "integer", minimum: 320, maximum: 3840 }, height: { type: "integer", minimum: 240, maximum: 2160 }, max_chars: { type: "integer", minimum: 1000, maximum: 120000 } }, ["operation"]), annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true } },
+  { name: "mouse_hole_browser", description: "Control structured Chromium browsing with explicit foreground fallback for anti-bot/login pages", inputSchema: schema({ operation: { type: "string", enum: ["status", "dump_dom", "inspect", "click", "fill", "type", "screenshot", "snapshot", "open_foreground", "read_foreground_text"] }, url: { type: "string" }, selector: { type: "string" }, text: { type: "string" }, title: { type: "string", maxLength: 512 }, foreground_control: { type: "boolean" }, wait_ms: { type: "integer", minimum: 0, maximum: 30000 }, output_path: { type: "string" }, width: { type: "integer", minimum: 320, maximum: 3840 }, height: { type: "integer", minimum: 240, maximum: 2160 }, max_chars: { type: "integer", minimum: 1000, maximum: 120000 }, space: { type: "string", maxLength: 48 } }, ["operation"]), annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true } },
   { name: "mouse_hole_observe", description: "Read a screenshot or image result without GUI actuation", inputSchema: schema({ target: { type: "string", enum: ["screen", "window", "image", "resource"] }, title: { type: "string" }, path: { type: "string" } }, ["target"]), annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false } },
   { name: "mouse_hole_gui", description: "Launch new Agent-owned Windows GUI in a free screen quadrant, or use guarded foreground input; foreground_control=true required for actuation", inputSchema: schema({ operation: { type: "string", enum: ["status", "wait", "launch", "focus_window", "move", "click", "double_click", "right_click", "drag", "scroll", "type_text", "key_press", "hotkey"] }, foreground_control: { type: "boolean" }, x: { type: "integer" }, y: { type: "integer" }, x2: { type: "integer" }, y2: { type: "integer" }, delta: { type: "integer", minimum: -12000, maximum: 12000 }, text: { type: "string", maxLength: 4000 }, title: { type: "string", maxLength: 512 }, key: { type: "string", enum: ["ENTER", "TAB", "ESC", "SPACE", "BACKSPACE", "DELETE", "UP", "DOWN", "LEFT", "RIGHT", "HOME", "END", "PAGEUP", "PAGEDOWN", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "A", "C", "V", "X", "Y", "Z"] }, modifiers: { type: "array", maxItems: 3, uniqueItems: true, items: { type: "string", enum: ["CTRL", "ALT", "SHIFT"] } }, duration_ms: { type: "integer", minimum: 0, maximum: 30000 }, executable: { type: "string", maxLength: 2048 }, arguments: { type: "string", maxLength: 4000 } }, ["operation"]), annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false } },
 ];
 
-export const MOUSE_HOLE_TOOLS = [...core, ...applicationTools].filter(tool => !["mouse_hole_blender", "mouse_hole_godot", "mouse_hole_comfyui"].includes(tool.name));
+export const MOUSE_HOLE_TOOLS = [...core, ...applicationTools];
 export const MOUSE_HOLE_CORE_TOOLS = MOUSE_HOLE_TOOLS;
 export const MOUSE_HOLE_SCHEMA_FINGERPRINT = createHash("sha256")
   .update(JSON.stringify(MOUSE_HOLE_TOOLS))
@@ -306,7 +307,10 @@ async function placeNewBrowserWindow(knownHandles, expectedPid) {
 }
 
 async function browserCall(root, args) {
-  if (args.operation === "status") return { ok: !!BROWSER_BIN, operation: "browser.status", ready: !!BROWSER_BIN, metadata: { executable: BROWSER_BIN, headless: true, transport: "cdp", foreground_fallback: true } };
+  if (args.operation === "status") {
+    const attached = args.url ? await browserAttachedStatus(root, browserUrl(args.url)) : null;
+    return { ok: !!BROWSER_BIN, operation: "browser.status", ready: !!BROWSER_BIN, metadata: { executable: BROWSER_BIN, headless: true, transport: "cdp", foreground_fallback: true, ego_snapshot_available: egoAvailable(), ...(attached ? {attached}: {}) } };
+  }
   if (args.operation === "open_foreground") {
     assertBrowserForegroundPolicy(args);
     if (!BROWSER_BIN) return { ok: false, operation: "browser.open_foreground", error_class: "unavailable", error_detail: "No supported Chromium browser found", retryable: true };
@@ -318,6 +322,7 @@ async function browserCall(root, args) {
     return { ok: true, operation: "browser.open_foreground", metadata: { url, executable: BROWSER_BIN, foreground: true, placement } };
   }
   if (args.operation === "read_foreground_text") {
+    assertBrowserForegroundPolicy(args);
     const value = foregroundPageText(args);
     if (!value.text.trim()) return { ok: false, operation: "browser.read_foreground_text", failure: "empty_capture", reason: "The foreground Edge page did not yield readable text; select the page content and retry.", metadata: { foreground: true, clipboard_restored: true, total_chars: 0 } };
     return { ok: true, operation: "browser.read_foreground_text", metadata: { foreground: true, clipboard_restored: true, total_chars: value.total_chars, truncated: value.truncated }, output: value.text };
@@ -325,6 +330,14 @@ async function browserCall(root, args) {
   if (!BROWSER_BIN) return { ok: false, operation: `browser.${args.operation}`, error_class: "unavailable", error_detail: "No supported Chromium browser found", retryable: true };
   const url = browserUrl(args.url);
   const waitMs = Math.max(0, Math.min(30000, Number(args.wait_ms ?? 5000)));
+  if (args.operation === "snapshot") {
+    // Explicit opt-in only. Existing Edge operations keep their original route.
+    const value = await egoTask({operation:"snapshot",url,space:args.space || "default",maxChars:Math.min(12000,Number(args.max_chars)||12000)});
+    if (!value.ok) return {ok:false,operation:"browser.snapshot",failure:"ego_unavailable",reason:String(value.stderr||value.error||"Ego Windows Host failed").slice(0,700),metadata:{backend:"ego_windows_host",duration_ms:value.duration_ms}};
+    const result = compact({ok:true,output:value.stdout},"browser.snapshot");
+    result.metadata = {...(result.metadata||{}),backend:"ego_windows_host",space:args.space||"default",duration_ms:value.duration_ms};
+    return result;
+  }
   if (args.operation === "dump_dom") {
     const value = await browserDumpDom({ root, browserBin: BROWSER_BIN, url, reuseSession: true, maxChars: Math.max(1000, Math.min(120000, Number(args.max_chars || 30000))) });
     const block = browserBlockSignal(value.dom);
@@ -575,6 +588,8 @@ async function guiCall(args) {
   // back silently to a coordinate click when a semantic target is unsupported.
   const semanticButton = args.operation === "click" && typeof args.text === "string" && args.text.trim().length > 0;
   if (semanticButton && (!args.title || args.text.length > 512)) throw new Error("Exact window title and native button caption required");
+  // Read-only fast path: never changes foreground, keyboard or cursor. Disable via env for instant rollback.
+  const fastPassiveStatus = args.operation === "status" && !args.title && process.env.MOUSE_HOLE_GUI_FAST_STATUS !== "0";
   const psArgs = ["-NoProfile", "-NonInteractive", "-Sta", "-ExecutionPolicy", "Bypass", "-File", GUI_SCRIPT, "-Operation", args.operation];
   const push = (flag, value) => { if (value !== undefined && value !== null) psArgs.push(flag, String(value)); };
   for (const [key, flag] of [["x", "-X"], ["y", "-Y"], ["x2", "-X2"], ["y2", "-Y2"], ["delta", "-Delta"], ["text", "-Text"], ["title", "-Title"], ["duration_ms", "-DurationMs"]]) push(flag, args[key]);
@@ -584,8 +599,8 @@ async function guiCall(args) {
   }
   const budget = semanticButton ? 4500 : args.operation === "wait" ? Math.min(35000, Number(args.duration_ms || 0) + 5000) : 15000;
   const childResult = await new Promise((resolve, reject) => {
-    const command = semanticButton ? (process.env.HANAKO_PYTHON || "python") : "powershell.exe";
-    const launchArgs = semanticButton ? ["-u", GUI_NATIVE_BUTTON_SCRIPT, "--title", args.title, "--text", args.text] : psArgs;
+    const command = (semanticButton || fastPassiveStatus) ? (process.env.HANAKO_PYTHON || "python") : "powershell.exe";
+    const launchArgs = semanticButton ? ["-u", GUI_NATIVE_BUTTON_SCRIPT, "--title", args.title, "--text", args.text] : fastPassiveStatus ? ["-u", GUI_READONLY_STATUS_SCRIPT] : psArgs;
     const child = spawn(command, launchArgs, { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "", stderr = "", settled = false;
     const finish = (err, value) => {
@@ -614,7 +629,10 @@ async function guiCall(args) {
   const line = String(childResult || "").trim().split(/\r?\n/).filter(Boolean).at(-1);
   if (!line) throw new Error("GUI backend returned no result");
   const payload = JSON.parse(line);
-  return { ok: payload.ok === true, operation: `gui.${args.operation}`, metadata: { state: payload.state || null, foreground_required: policyMode === "foreground_opt_in", mode: policyMode, backend: payload.semantic_backend || "guarded_powershell", ...(semanticButton ? {action_ms:payload.action_ms,cursor_unchanged:payload.cursor_unchanged,global_mouse_input_used:payload.global_mouse_input_used,message_delivered:payload.message_delivered,target_foreground:payload.target_foreground,control_handle:payload.control_handle} : {}) } };
+  if (fastPassiveStatus && (!payload.state || !Number.isSafeInteger(payload.state.foreground_handle) || typeof payload.state.foreground_title !== "string" || !Number.isInteger(payload.state.cursor?.x) || !Number.isInteger(payload.state.cursor?.y))) {
+    throw new Error("Read-only Win32 GUI state response invalid");
+  }
+  return { ok: fastPassiveStatus ? true : payload.ok === true, operation: `gui.${args.operation}`, metadata: { state: payload.state || null, foreground_required: policyMode === "foreground_opt_in", mode: policyMode, backend: fastPassiveStatus ? "readonly_win32_python" : payload.semantic_backend || "guarded_powershell", ...(semanticButton ? {action_ms:payload.action_ms,cursor_unchanged:payload.cursor_unchanged,global_mouse_input_used:payload.global_mouse_input_used,message_delivered:payload.message_delivered,target_foreground:payload.target_foreground,control_handle:payload.control_handle} : {}) } };
 }
 
 /** Isolated, bounded commands never read a shared Desktop Commander process-output buffer. */
@@ -682,8 +700,9 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
         operation: "status",
         ready: true,
         schema_fingerprint: MOUSE_HOLE_SCHEMA_FINGERPRINT,
-        capabilities: ["construction", "read", "write", "patch", "search", "run", "process", "git", "validate", "browser", "observe", "gui"],
+        capabilities: ["construction", "read", "write", "patch", "search", "run", "process", "git", "validate", "blender", "godot", "comfyui", "browser", "observe", "gui"],
         version: MICE_HOLE_VERSION,
+        server_build: MICE_HOLE_BUILD,
         construction_io: "read construction://status|continue?project=<path>; write construction://start|checkpoint|continue|resume|finish",
       };
       const detail = args.detail || "runtime";
@@ -692,7 +711,7 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
       let diagnostic;
       try { diagnostic = diagnose({ ...args, operation: map[detail] }); }
       catch (error) { diagnostic = { data: { available: false, reason: 'diagnostic_probe_failed', error: String(error.code || error.message).slice(0, 500) } }; }
-      return { ok: true, operation: "status", ready: true, capabilities: base.capabilities, detail, data: diagnostic.data, ...(diagnostic.metadata && Object.keys(diagnostic.metadata).length ? { metadata: diagnostic.metadata } : {}) };
+      return { ok: true, operation: "status", ready: true, version: base.version, server_build: base.server_build, schema_fingerprint: base.schema_fingerprint, capabilities: base.capabilities, detail, data: diagnostic.data, ...(diagnostic.metadata && Object.keys(diagnostic.metadata).length ? { metadata: diagnostic.metadata } : {}) };
     }
     if (name === "mouse_hole_read") {
       if (typeof args.path === "string" && args.path.startsWith("construction://")) {
@@ -747,7 +766,14 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
     }
     if (name === "mouse_hole_run") return runBoundedDirect(root, args);
     if (name === "mouse_hole_validate") {
-      const result = await invoke("hanako_validate", args, "validate");
+      // Validation must not poll Desktop Commander's shared process-session output.
+      // Use the same isolated bounded executor as mouse_hole_run, preserving the
+      // existing validation summary contract and the no-replay safety boundary.
+      const result = await runBoundedDirect(root, {
+        ...args, command: args.command || "python tools/validation/run_engineering_suite.py"
+      });
+      result.operation = "validate";
+      result.metadata = { ...(result.metadata || {}), validation_backend: "isolated_powershell" };
       if (result.exit_code === 0) {
         result.summary = "Validation passed";
         delete result.output;
@@ -765,18 +791,34 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
       return invoke(legacy, args, `git.${args.operation}`);
     }
     if (name === "mouse_hole_process") {
+      // A Desktop Commander session can disappear after process exit or connector
+      // recycling. Report unknown outcome rather than leaving an orphan handle
+      // to be polled forever or incorrectly claiming the command succeeded.
+      const readProcessOutput = async (payload) => {
+        try { return await call(root, "hanako_process_output", payload); }
+        catch (error) {
+          const message = String(error?.message || error);
+          const match = message.match(/No session found for PID\s+(\d+)/i);
+          if (!match || Number(match[1]) !== args.process_id) throw error;
+          return { ok: false, process_id: args.process_id, running: false,
+            error_class: "process_session_lost",
+            error_detail: "Execution session disappeared; exit code is unknown. Verify output artifacts before declaring success.",
+            metadata: { terminal: true, outcome: "unknown" } };
+        }
+      };
       if (args.operation === "wait") {
         if (!Number.isInteger(args.process_id)) throw new Error("process_id is required");
         const waitMs = Math.max(0, Math.min(30000, Number(args.wait_ms ?? args.timeout_ms ?? 15000)));
         const deadline = Date.now() + waitMs;
-        let latest = await call(root, "hanako_process_output", { process_id: args.process_id, timeout_ms: Math.min(1000, Math.max(100, waitMs)), offset: args.offset, length: args.length });
+        let latest = await readProcessOutput({ process_id: args.process_id, timeout_ms: Math.min(1000, Math.max(100, waitMs)), offset: args.offset, length: args.length });
         while (latest?.exit_code === undefined && latest?.exit_code !== 0 && Date.now() < deadline) {
           if (latest?.running === false || latest?.exit_code !== undefined) break;
           await new Promise(resolve => setTimeout(resolve, Math.min(1000, Math.max(50, deadline - Date.now()))));
           if (Date.now() >= deadline) break;
-          latest = await call(root, "hanako_process_output", { process_id: args.process_id, timeout_ms: Math.min(1000, Math.max(100, deadline - Date.now())), offset: args.offset, length: args.length });
+          latest = await readProcessOutput({ process_id: args.process_id, timeout_ms: Math.min(1000, Math.max(100, deadline - Date.now())), offset: args.offset, length: args.length });
         }
         const result = compact(latest, "process.wait");
+        if (result.error_class === "process_session_lost") result.retryable = false;
         result.metadata = { ...(result.metadata || {}), waited_ms: waitMs, terminal: result.exit_code !== undefined || result.running === false };
         return result;
       }
@@ -787,9 +829,18 @@ export function createMouseHoleCore({ call = computerCall, diagnose = systemCall
         stop: ["hanako_kill_process", { process_id: args.process_id }],
       }[args.operation];
       if (!route) throw new Error("Unsupported process operation");
-      const result = await invoke(route[0], route[1], `process.${args.operation}`);
+      const result = args.operation === "output"
+        ? compact(await readProcessOutput(route[1]), "process.output")
+        : await invoke(route[0], route[1], `process.${args.operation}`);
+      if (result.error_class === "process_session_lost") result.retryable = false;
       if (args.operation === "start" && result.running === true && Number.isInteger(result.process_id)) delete result.output;
-      if (args.operation === "status") delete result.output;
+      if (args.operation === "status") {
+        // A missing process in the session list is not proof of successful exit.
+        if (result.running === false && result.exit_code === undefined) {
+          result.metadata = { ...(result.metadata || {}), terminal: true, outcome: "unknown" };
+        }
+        delete result.output;
+      }
       if (args.operation === "stop" && result.ok) delete result.output;
       return result;
     }

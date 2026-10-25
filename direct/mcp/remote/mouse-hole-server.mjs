@@ -6,19 +6,21 @@ import readline from "node:readline";
 import { DEFAULT_WORKSPACE, isDeniedPath } from "./bridge-core.mjs";
 import { closeComputerAdapter } from "./computer-adapter.mjs";
 import { MOUSE_HOLE_TOOLS, mouseHoleCoreCall, mouseHoleConstructionContext } from "./mouse-hole-core.mjs";
-import { MICE_HOLE_VERSION } from "./mouse-hole-project-memory.mjs";
+import { MICE_HOLE_VERSION, MICE_HOLE_BUILD } from "./mouse-hole-project-memory.mjs";
 import { closeBrowserSessions } from "./browser-cdp.mjs";
 import { runBatch } from "../../tools/mouse-hole/bounded-batch.mjs";
 import { describeConstructionState, isConstructionTrackingActive, loadConstructionState } from "./mouse-hole-construction-state.mjs";
 import { serializeBoundedResponse } from "./mouse-hole-response-budget.mjs";
 import { MOUSE_HOLE_SCHEMA_FINGERPRINT } from "./mouse-hole-core.mjs";
+import { createCallTracer } from "./mouse-hole-call-trace.mjs";
 
 const ROOT = process.env.MOUSE_HOLE_WORKSPACE || process.env.HANAKO_WORKSPACE || DEFAULT_WORKSPACE;
 const SERVER = { name: "mouse-hole", version: MICE_HOLE_VERSION };
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-11-25"];
 process.env.MOUSE_HOLE_SAFE_RETRY = "1";
 const healthFile = path.join(ROOT, "work", "mouse-hole", "logs", `mcp-session-${process.pid}.json`);
-const sessionHealth = { pid: process.pid, parent_pid: process.ppid, started_at: new Date().toISOString(), server_version: MICE_HOLE_VERSION, execution_mode: "direct_stdio", schema_fingerprint: MOUSE_HOLE_SCHEMA_FINGERPRINT, initialized: false, last_tool_at: null, last_tool_ok: null, response_limited: false, client_receipt_verified: false };
+const callTrace = createCallTracer(ROOT);
+const sessionHealth = { pid: process.pid, parent_pid: process.ppid, started_at: new Date().toISOString(), server_version: MICE_HOLE_VERSION, server_build: MICE_HOLE_BUILD, execution_mode: "direct_stdio", schema_fingerprint: MOUSE_HOLE_SCHEMA_FINGERPRINT, initialized: false, last_tool_at: null, last_tool_ok: null, response_limited: false, client_receipt_verified: false, call_trace_file: callTrace.file };
 function writeSessionHealth() {
   if (process.env.MOUSE_HOLE_DIAGNOSTIC_PROBE === "1") return;
   try {
@@ -152,14 +154,17 @@ async function directCall(name, args) {
     }
 }
 
-function send(message) {
+function send(message, callId = null) {
   const bounded = serializeBoundedResponse(message);
   if (bounded.limited) { sessionHealth.response_limited = true; writeSessionHealth(); }
+  if (callId) callTrace.record("stdio_write_queued", callId, { bytes: bounded.bytes, limited: bounded.limited });
   process.stdout.write(`${bounded.text}\n`, () => {
     sessionHealth.last_stdio_write_at = new Date().toISOString();
     sessionHealth.last_response_bytes = bounded.bytes;
     sessionHealth.last_response_limited = bounded.limited;
     writeSessionHealth();
+    // Node write callback confirms local stream completion, NOT ChatGPT receipt.
+    if (callId) callTrace.record("stdio_write_callback", callId, { bytes: bounded.bytes, limited: bounded.limited });
   });
 }
 function ok(id, result) { return { jsonrpc: "2.0", id, result }; }
@@ -217,7 +222,7 @@ async function handle(message) {
   if (method === "initialize") return ok(id, {
     protocolVersion: SUPPORTED_PROTOCOL_VERSIONS.includes(params.protocolVersion) ? params.protocolVersion : SUPPORTED_PROTOCOL_VERSIONS.at(-1),
     capabilities: { tools: {} }, serverInfo: SERVER,
-    instructions: 'Read the configured workspace AGENTS.md and selected project AGENTS.md if present and not already loaded; resume from the authoritative project STATUS or construction://continue. Read optional _system/MD_SESSION_POLICY.md only when needed. Selective reads, milestone-only writes; do not require all four project-memory files for every project. For @micehole continue or 继续施工, recover the current project via mouse_hole_read construction://continue, or include ?project=<workspace-relative path>. Reactivate with mouse_hole_write construction://continue and then carry out the authorized next action. Project memory lives in PROJECT.md, STATUS.md, TODO.md and LOG.md. A connection is not the project lifetime. Never guess among multiple projects or bypass a human gate.',
+    instructions: 'Load the configured workspace AGENTS.md and the selected project AGENTS.md before editing when accessible; use the project STATUS or construction://continue as the fresh state source. Follow _system/MD_SESSION_POLICY.md for selective reads and milestone-only writes. For @micehole continue or 继续施工, recover the current project via mouse_hole_read construction://continue, or include ?project=<workspace-relative path>. Reactivate with mouse_hole_write construction://continue and then carry out the authorized next action. Project memory lives in PROJECT.md, STATUS.md, TODO.md and LOG.md. A connection is not the project lifetime. Never guess among multiple projects or bypass a human gate.',
   });
   if (method === "notifications/initialized") { sessionHealth.initialized = true; writeSessionHealth(); return null; }
   if (method === "notifications/cancelled") return null;
@@ -269,16 +274,37 @@ input.on("line", line => {
   let message;
   try { message = JSON.parse(line); }
   catch { send(error(null, -32700, "Parse error")); return; }
-  const work = Promise.resolve(handle(message)).then(response => { if (response) send(response); }).catch(cause => {
-    if (message?.id !== undefined) send(error(message.id, -32603, String(cause?.message || cause)));
+  const callId = message?.method === "tools/call"
+    ? callTrace.start(message?.params?.name, message?.params?.arguments?.operation)
+    : null;
+  if (callId) callTrace.record("tool_dispatched", callId, {
+    tool: message?.params?.name, operation: message?.params?.arguments?.operation
+  });
+  const startedAt = performance.now();
+  const work = Promise.resolve(handle(message)).then(response => {
+    if (response) {
+      if (callId) callTrace.record("tool_result_ready", callId, {
+        outcome: response.error ? "rpc_error" : response.result?.isError ? "tool_error" : "ok",
+        elapsed_ms: Math.round((performance.now() - startedAt) * 100) / 100
+      });
+      send(response, callId);
+    }
+  }).catch(cause => {
+    if (callId) callTrace.record("handler_unhandled", callId, {
+      outcome: "internal_error",
+      elapsed_ms: Math.round((performance.now() - startedAt) * 100) / 100
+    });
+    if (message?.id !== undefined) send(error(message.id, -32603, String(cause?.message || cause)), callId);
   });
   pending.add(work);
   work.finally(() => pending.delete(work));
 });
 input.on("close", async () => {
+  callTrace.record("stdin_closed", null, { pending: pending.size });
+  await Promise.allSettled([...pending]);
   sessionHealth.closed_at = new Date().toISOString();
   writeSessionHealth();
-  await Promise.allSettled([...pending]);
+  callTrace.record("session_drained", null, { pending: pending.size });
   await closeBrowserSessions();
   await closeComputerAdapter().catch(cause => process.stderr.write(`Mouse Hole backend close failed: ${cause?.message || cause}\n`));
 });

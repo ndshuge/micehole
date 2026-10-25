@@ -29,6 +29,10 @@ public static class HanakoGuiNative {
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
   [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int command);
+  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
+  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint from, uint to, bool attach);
   [DllImport("user32.dll", EntryPoint = "FindWindowW", CharSet = CharSet.Unicode)] public static extern IntPtr FindWindow(IntPtr className, string windowName);
   [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
   [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
@@ -43,6 +47,7 @@ public static class HanakoGuiNative {
   public static extern int GetClassName(IntPtr hwnd, StringBuilder buffer, int limit);
   [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hwnd);
   [DllImport("user32.dll")] public static extern bool EnumChildWindows(IntPtr parent, EnumWindowProc callback, IntPtr data);
+  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowProc callback, IntPtr data);
   public delegate bool EnumWindowProc(IntPtr handle, IntPtr data);
   [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode, SetLastError = true)]
   public static extern IntPtr SendMessageTimeout(IntPtr handle, uint message, IntPtr wParam, IntPtr lParam, uint flags, uint milliseconds, out IntPtr result);
@@ -74,6 +79,49 @@ public static class HanakoGuiNative {
       throw new InvalidOperationException("Native BM_CLICK timed out/failed; do not claim action succeeded");
   }
 
+  // For explicit focus requests only: allow a unique stable title fragment.
+  // Ambiguity is denied; keyboard/pointer actions still require an exact title.
+  public static IntPtr FindUniqueVisibleWindow(string title) {
+    if (String.IsNullOrWhiteSpace(title))
+      throw new InvalidOperationException("Focus title must be nonempty");
+    IntPtr exact=FindWindow(IntPtr.Zero,title);
+    if (exact!=IntPtr.Zero && IsWindowVisible(exact)) return exact;
+    if (title.Length < 10)
+      throw new InvalidOperationException("Focus title fragment must contain at least 10 characters");
+    var hits=new List<IntPtr>();
+    EnumWindowProc scan=(hwnd,unused)=>{
+      if(!IsWindowVisible(hwnd)) return true;
+      var text=new StringBuilder(1024);
+      GetWindowText(hwnd,text,text.Capacity);
+      if(text.ToString().IndexOf(title,StringComparison.OrdinalIgnoreCase)>=0) hits.Add(hwnd);
+      return hits.Count<2;
+    };
+    EnumWindows(scan,IntPtr.Zero);
+    if (hits.Count!=1) throw new InvalidOperationException("Focus target not uniquely identifiable; matching windows="+hits.Count);
+    return hits[0];
+  }
+
+  public static bool TryFocusWithThreadAttach(IntPtr target) {
+    // Win32 may reject ordinary SetForegroundWindow even for an allowed task.
+    // This guarded fallback does not emit synthetic keyboard/mouse events.
+    if(target==IntPtr.Zero || !IsWindowVisible(target)) return false;
+    IntPtr foreground=GetForegroundWindow();
+    uint ignored;
+    uint caller=GetCurrentThreadId();
+    uint frontTid=foreground==IntPtr.Zero ? 0 : GetWindowThreadProcessId(foreground,out ignored);
+    uint targetTid=GetWindowThreadProcessId(target,out ignored);
+    bool attachFront=frontTid!=0 && frontTid!=caller && AttachThreadInput(caller,frontTid,true);
+    bool attachTarget=targetTid!=0 && targetTid!=caller && targetTid!=frontTid && AttachThreadInput(caller,targetTid,true);
+    try {
+      ShowWindowAsync(target,9);
+      BringWindowToTop(target);
+      SetForegroundWindow(target);
+      return GetForegroundWindow()==target;
+    } finally {
+      if(attachTarget) AttachThreadInput(caller,targetTid,false);
+      if(attachFront) AttachThreadInput(caller,frontTid,false);
+    }
+  }
   public const uint LEFTDOWN = 0x0002;
   public const uint LEFTUP = 0x0004;
   public const uint RIGHTDOWN = 0x0008;
@@ -94,7 +142,11 @@ function Get-GuiState {
     foreground_handle = $hwnd.ToInt64()
   }
   if (-not [string]::IsNullOrWhiteSpace($Title)) {
-    $target = [HanakoGuiNative]::FindWindow([IntPtr]::Zero,$Title)
+    $target = if ($Operation -eq 'focus_window') {
+      [HanakoGuiNative]::FindUniqueVisibleWindow($Title)
+    } else {
+      [HanakoGuiNative]::FindWindow([IntPtr]::Zero,$Title)
+    }
     $state.target = @{ title = $Title; exists = ($target -ne [IntPtr]::Zero); foreground = ($target -ne [IntPtr]::Zero -and $target -eq $hwnd) }
     if ($target -ne [IntPtr]::Zero) {
       $bounds = New-Object HanakoGuiNative+RECT
@@ -150,35 +202,42 @@ function Send-KeysSafe([string]$value) {
 
 # All physical cursor, keyboard and focus operations share one cross-process input gate.
 # Semantic BM_CLICK is handled outside this file and never touches global input.
+# Adaptive safety gate: explicit GUI opt-in is not a license to interrupt games.
+# Detect all known running games AND exclusive/borderless fullscreen windows.
+function Assert-GuiWorkSafe {
+  $probe = Join-Path $PSScriptRoot 'gui-safety-probe.py'
+  $py = if (-not [string]::IsNullOrWhiteSpace($env:HANAKO_PYTHON)) { $env:HANAKO_PYTHON } else { 'python' }
+  $result = & $py -u $probe 2>&1
+  if ($LASTEXITCODE -ne 0) { throw "Windows GUI safety probe failed; foreground control deferred" }
+  try { $sample = (($result | Out-String).Trim() | ConvertFrom-Json) }
+  catch { throw "Invalid Windows GUI safety state; foreground control deferred" }
+  if ($null -eq $sample -or $null -eq $sample.idle_ms -or
+      $sample.game_running -isnot [bool] -or $sample.fullscreen_foreground -isnot [bool] -or
+      $sample.block_foreground -isnot [bool]) {
+    throw "Missing Windows GUI safety fields; foreground control deferred"
+  }
+  if ($sample.game_running -or $sample.fullscreen_foreground -or $sample.block_foreground) {
+    throw "Game or fullscreen window protected; no GUI input or focus permitted"
+  }
+  if ([int64]$sample.idle_ms -lt 900) {
+    throw "User currently interacting; foreground GUI input deferred"
+  }
+}
 $guiInputLock = $null
 $guiInputHeld = $false
 if ($Operation -notin @('status', 'wait')) {
   if ($env:MOUSE_HOLE_GUI_FOREGROUND_MODE -ne 'allow') {
     throw "Foreground GUI disabled by default: MOUSE_HOLE_GUI_FOREGROUND_MODE=allow required"
   }
+  if ($env:MOUSE_HOLE_GUI_GAME_LOCK -eq 'on') {
+    throw "Manual gaming lock active; no GUI actuation permitted"
+  }
   $guiInputLock = [Threading.Mutex]::new($false, 'Local\MouseHoleGuiInput')
   try {
     try { $guiInputHeld = $guiInputLock.WaitOne(4000) }
     catch [Threading.AbandonedMutexException] { $guiInputHeld = $true }
     if (-not $guiInputHeld) { throw "GUI input busy; retry only when other input ends" }
-    Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public static class MouseHoleUserIdle {
-  [StructLayout(LayoutKind.Sequential)]
-  public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
-  [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LASTINPUTINFO info);
-  public static uint IdleMs() {
-    var info = new LASTINPUTINFO();
-    info.cbSize = (uint)Marshal.SizeOf(typeof(LASTINPUTINFO));
-    if (!GetLastInputInfo(ref info)) throw new InvalidOperationException("Cannot check user activity");
-    return unchecked((uint)Environment.TickCount - info.dwTime);
-  }
-}
-"@
-    if ([MouseHoleUserIdle]::IdleMs() -lt 3000) {
-      throw "User recently active; foreground GUI input deferred"
-    }
+    Assert-GuiWorkSafe
   } catch {
     if ($guiInputHeld) { [void]$guiInputLock.ReleaseMutex() }
     $guiInputLock.Dispose()
@@ -198,19 +257,30 @@ switch ($Operation) {
   }
   "focus_window" {
     if ([string]::IsNullOrWhiteSpace($Title)) { throw "Title is required" }
-    $target = [HanakoGuiNative]::FindWindow([IntPtr]::Zero,$Title)
-    if ($target -eq [IntPtr]::Zero) { throw "Exact target window not found" }
+    # Focus can use a unique, stable fragment when a browser tab changes its
+    # full title. Input operations still require the exact observed title.
+    $target = [HanakoGuiNative]::FindUniqueVisibleWindow($Title)
     if (-not [HanakoGuiNative]::IsWindowVisible($target)) { throw "Target window is hidden" }
-    [void][HanakoGuiNative]::ShowWindowAsync($target,9)
-    [void][HanakoGuiNative]::SetForegroundWindow($target)
-    $shell = New-Object -ComObject WScript.Shell
-    [void]$shell.AppActivate($Title)
+    if ([HanakoGuiNative]::GetForegroundWindow() -ne $target) {
+      [void][HanakoGuiNative]::ShowWindowAsync($target,9)
+      [void][HanakoGuiNative]::SetForegroundWindow($target)
+    }
     $focused = $false
-    for ($i=0;$i -lt 6;$i++) {
+    for ($i=0;$i -lt 4;$i++) {
       Start-Sleep -Milliseconds 120
       if ([HanakoGuiNative]::GetForegroundWindow() -eq $target) { $focused=$true;break }
     }
-    if (-not $focused) { throw "Windows refused to focus exact target window; no further GUI action performed" }
+    if (-not $focused) {
+      # Recheck the user/game gate immediately before trying the OS focus
+      # assist. No synthetic Alt, click or key event is sent.
+      Assert-GuiWorkSafe
+      [void][HanakoGuiNative]::TryFocusWithThreadAttach($target)
+      for ($i=0;$i -lt 4;$i++) {
+        Start-Sleep -Milliseconds 120
+        if ([HanakoGuiNative]::GetForegroundWindow() -eq $target) { $focused=$true;break }
+      }
+    }
+    if (-not $focused) { throw "Windows denied focus even after safe retry; no input performed" }
   }
   "move" {
     Assert-GuiTarget $X $Y
